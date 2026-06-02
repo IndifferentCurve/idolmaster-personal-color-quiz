@@ -1356,6 +1356,7 @@
       group: "allstars",
       locked: false
     };
+    const lastChoiceSignatures = new Map();
 
     const screens = {
       start: document.getElementById("startScreen"),
@@ -1529,7 +1530,7 @@
 
     function renderChoices(question) {
       const distractors = generateDistractors(question, state.difficulty);
-      const choices = shuffle([
+      const choices = shuffleChoices(question, state.difficulty, [
         { hex: question.hex, isAnswer: true },
         ...distractors.map((hex) => ({ hex, isAnswer: false }))
       ]);
@@ -1545,6 +1546,27 @@
         button.addEventListener("click", () => judgeAnswer(button, choice, question));
         swatches.appendChild(button);
       });
+    }
+
+    function shuffleChoices(question, difficulty, choices) {
+      const key = `${difficulty}-${question.no}`;
+      const lastSignature = lastChoiceSignatures.get(key);
+      let shuffled = shuffle(choices);
+      let signature = getChoiceSignature(shuffled);
+      let attempts = 0;
+
+      while (signature === lastSignature && attempts < 12) {
+        shuffled = shuffle(choices);
+        signature = getChoiceSignature(shuffled);
+        attempts += 1;
+      }
+
+      lastChoiceSignatures.set(key, signature);
+      return shuffled;
+    }
+
+    function getChoiceSignature(choices) {
+      return choices.map((choice) => `${choice.hex.toLowerCase()}${choice.isAnswer ? "!" : ""}`).join("|");
     }
 
     function judgeAnswer(button, choice, question) {
@@ -1824,16 +1846,23 @@
       const targetDistractorCount = 5;
       const correctHex = question.hex.toLowerCase();
       const base = question.hsl;
+      const distanceRules = getVisualDistanceRules(difficulty);
       const colors = new Set();
 
-      const addColor = (hex) => {
+      const addColor = (hex, relaxation = 0) => {
         const normalized = hex.toLowerCase();
-        if (normalized !== correctHex && !colors.has(normalized)) {
+        if (
+          normalized !== correctHex
+          && !colors.has(normalized)
+          && isVisuallyDistinctChoice(normalized, correctHex, [...colors], distanceRules, relaxation)
+        ) {
           colors.add(normalized);
+          return true;
         }
+        return false;
       };
 
-      addColor(makeHairTrapColor(question));
+      addHairTrapColor(question, addColor);
 
       if (difficulty === "easy") {
         fillGenerated(colors, targetDistractorCount, () => {
@@ -1854,12 +1883,19 @@
           );
         }, addColor);
       } else {
-        closestRealColors(question, 2).forEach(addColor);
+        let realTrapCount = 0;
+        const realTrapTarget = randomInteger(1, 2);
+        closestRealColors(question, 8).forEach((hex) => {
+          if (realTrapCount < realTrapTarget && addColor(hex)) {
+            realTrapCount += 1;
+          }
+        });
+
         fillGenerated(colors, targetDistractorCount, () => {
           const mode = ["hue", "tone", "mixed"][Math.floor(Math.random() * 3)];
-          const hueShift = randomBetween(5, 10) * randomSign();
-          const saturationShift = randomBetween(5, 10) * randomSign();
-          const lightnessShift = randomBetween(5, 10) * randomSign();
+          const hueShift = randomBetween(6, 12) * randomSign();
+          const saturationShift = randomBetween(6, 12) * randomSign();
+          const lightnessShift = randomBetween(6, 12) * randomSign();
 
           if (mode === "hue") {
             return hslToHex(base.h + hueShift, base.s, base.l);
@@ -1884,16 +1920,36 @@
       return [...colors].slice(0, targetDistractorCount);
     }
 
-    function makeHairTrapColor(question) {
+    function addHairTrapColor(question, addColor) {
+      for (let attempt = 0; attempt < 40; attempt += 1) {
+        if (addColor(makeHairTrapColor(question, attempt))) return;
+      }
+
       const hair = question.hairHsl || {
         h: question.hsl.h + 34,
         s: clamp(question.hsl.s - 18, 12, 76),
         l: clamp(question.hsl.l - 16, 14, 72)
       };
+
+      addColor(hslToHex(
+        hair.h + randomBetween(16, 28) * randomSign(),
+        clamp(hair.s + randomBetween(10, 18) * randomSign(), 10, 92),
+        clamp(hair.l + randomBetween(10, 18) * randomSign(), 10, 88)
+      ), 3);
+    }
+
+    function makeHairTrapColor(question, attempt = 0) {
+      const hair = question.hairHsl || {
+        h: question.hsl.h + 34,
+        s: clamp(question.hsl.s - 18, 12, 76),
+        l: clamp(question.hsl.l - 16, 14, 72)
+      };
+      const hueRange = attempt < 16 ? 4 : 12;
+      const toneRange = attempt < 16 ? 6 : 14;
       let candidate = hslToHex(
-        hair.h + randomBetween(-4, 4),
-        clamp(hair.s + randomBetween(-6, 6), 10, 92),
-        clamp(hair.l + randomBetween(-6, 6), 10, 88)
+        hair.h + randomBetween(-hueRange, hueRange),
+        clamp(hair.s + randomBetween(-toneRange, toneRange), 10, 92),
+        clamp(hair.l + randomBetween(-toneRange, toneRange), 10, 88)
       );
 
       if (candidate.toLowerCase() === question.hex.toLowerCase()) {
@@ -1909,23 +1965,99 @@
         addColor(factory());
         guard += 1;
       }
-      while (colors.size < targetCount) {
+
+      let fallbackGuard = 0;
+      while (colors.size < targetCount && fallbackGuard < 220) {
         addColor(hslToHex(Math.random() * 360, randomBetween(36, 86), randomBetween(28, 80)));
+        fallbackGuard += 1;
+      }
+
+      let relaxedGuard = 0;
+      while (colors.size < targetCount && relaxedGuard < 220) {
+        addColor(hslToHex(Math.random() * 360, randomBetween(36, 86), randomBetween(28, 80)), 4);
+        relaxedGuard += 1;
       }
     }
 
     function closestRealColors(question, count) {
       const correctHex = question.hex.toLowerCase();
-      return enrichedIdols
+      const ranked = enrichedIdols
         .filter((idol) => idol.no !== question.no && idol.hex.toLowerCase() !== correctHex)
         .map((idol) => ({
           idol,
           hueGap: hueDistance(question.hsl.h, idol.hsl.h),
           toneGap: Math.abs(question.hsl.s - idol.hsl.s) + Math.abs(question.hsl.l - idol.hsl.l)
         }))
-        .sort((a, b) => a.hueGap - b.hueGap || a.toneGap - b.toneGap)
-        .slice(0, count)
-        .map(({ idol }) => idol.hex);
+        .sort((a, b) => a.hueGap - b.hueGap || a.toneGap - b.toneGap);
+      const picked = ranked.slice(0, 1);
+
+      if (count > 1) {
+        picked.push(...shuffle(ranked.slice(1, 6)).slice(0, count - 1));
+      }
+
+      return picked.map(({ idol }) => idol.hex);
+    }
+
+    function getVisualDistanceRules(difficulty) {
+      if (difficulty === "easy") {
+        return { minFromAnswer: 30, minBetweenChoices: 16 };
+      }
+
+      if (difficulty === "normal") {
+        return { minFromAnswer: 19, minBetweenChoices: 12 };
+      }
+
+      return { minFromAnswer: 12, minBetweenChoices: 8, maxFromAnswer: 40 };
+    }
+
+    function isVisuallyDistinctChoice(candidateHex, correctHex, selectedHexes, rules, relaxation = 0) {
+      const minFromAnswer = Math.max(10, rules.minFromAnswer - relaxation);
+      const minBetweenChoices = Math.max(7, rules.minBetweenChoices - relaxation);
+      const distanceFromAnswer = perceptualColorDistance(candidateHex, correctHex);
+
+      if (distanceFromAnswer < minFromAnswer) {
+        return false;
+      }
+
+      if (rules.maxFromAnswer && distanceFromAnswer > rules.maxFromAnswer + relaxation * 2) {
+        return false;
+      }
+
+      return selectedHexes.every((hex) => perceptualColorDistance(candidateHex, hex) >= minBetweenChoices);
+    }
+
+    function perceptualColorDistance(hexA, hexB) {
+      const a = rgbToLab(hexToRgb(hexA));
+      const b = rgbToLab(hexToRgb(hexB));
+      return Math.hypot(a.l - b.l, a.a - b.a, a.b - b.b);
+    }
+
+    function rgbToLab({ r, g, b }) {
+      const linearR = srgbToLinear(r / 255);
+      const linearG = srgbToLinear(g / 255);
+      const linearB = srgbToLinear(b / 255);
+
+      const x = (0.4124 * linearR + 0.3576 * linearG + 0.1805 * linearB) / 0.95047;
+      const y = (0.2126 * linearR + 0.7152 * linearG + 0.0722 * linearB);
+      const z = (0.0193 * linearR + 0.1192 * linearG + 0.9505 * linearB) / 1.08883;
+
+      const fx = labPivot(x);
+      const fy = labPivot(y);
+      const fz = labPivot(z);
+
+      return {
+        l: 116 * fy - 16,
+        a: 500 * (fx - fy),
+        b: 200 * (fy - fz)
+      };
+    }
+
+    function srgbToLinear(value) {
+      return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+    }
+
+    function labPivot(value) {
+      return value > 0.008856 ? Math.cbrt(value) : 7.787 * value + 16 / 116;
     }
 
     function hexToRgb(hex) {
@@ -2034,6 +2166,10 @@
 
     function randomBetween(min, max) {
       return min + Math.random() * (max - min);
+    }
+
+    function randomInteger(min, max) {
+      return Math.floor(randomBetween(min, max + 1));
     }
 
     function randomSign() {
