@@ -1066,7 +1066,7 @@
             </div>
             <div class="number-field">
               <label for="questionCount">직접 입력</label>
-              <input id="questionCount" type="number" min="1" max="13" value="5">
+              <input id="questionCount" type="text" inputmode="numeric" pattern="[0-9]*" max="13" value="5">
             </div>
           </div>
         </section>
@@ -1444,10 +1444,17 @@
 
     questionCountInput.addEventListener("input", () => {
       const poolSize = getPool().length;
-      const value = clamp(Number(questionCountInput.value) || 1, 1, poolSize);
-      questionCountInput.value = String(value);
+      const numericValue = questionCountInput.value.replace(/\D/g, "");
+      if (questionCountInput.value !== numericValue) {
+        questionCountInput.value = numericValue;
+      }
+      questionCountInput.max = String(poolSize);
       updatePresetSelection();
       updateStartSummary();
+    });
+
+    questionCountInput.addEventListener("blur", () => {
+      normalizeQuestionCount();
     });
 
     startButton.addEventListener("click", startGame);
@@ -1490,7 +1497,7 @@
 
     function startGame() {
       const pool = shuffle(getPool());
-      const total = clamp(Number(questionCountInput.value) || 1, 1, pool.length);
+      const total = normalizeQuestionCount(pool.length);
       state.questions = pool.slice(0, total);
       state.index = 0;
       state.correct = 0;
@@ -1771,11 +1778,25 @@
       const poolSize = getPool().length;
       const group = document.querySelector("input[name='group']:checked")?.value || state.group;
       const difficulty = document.querySelector("input[name='difficulty']:checked")?.value || state.difficulty;
-      const count = clamp(Number(questionCountInput.value) || 1, 1, poolSize);
+      const count = getQuestionCountValue(poolSize);
       questionCountInput.max = String(poolSize);
-      questionCountInput.value = String(count);
       poolTitle.textContent = `${groupLabels[group]} ${poolSize}명`;
       poolMeta.textContent = `${count}문항 · ${difficultyLabels[difficulty]}`;
+    }
+
+    function normalizeQuestionCount(poolSize = getPool().length) {
+      const count = getQuestionCountValue(poolSize);
+      questionCountInput.max = String(poolSize);
+      questionCountInput.value = String(count);
+      updatePresetSelection();
+      updateStartSummary();
+      return count;
+    }
+
+    function getQuestionCountValue(poolSize = getPool().length) {
+      const rawValue = Number(questionCountInput.value);
+      if (questionCountInput.value.trim() === "" || !Number.isFinite(rawValue)) return 1;
+      return clamp(Math.trunc(rawValue), 1, poolSize);
     }
 
     function updatePresetSelection(activeButton = null) {
