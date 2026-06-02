@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>밀리언 라이브 퍼스널 컬러 퀴즈</title>
+  <title>밀리언 라이브 퍼스널 컬러 맞추기</title>
   <style>
     :root {
       color-scheme: light;
@@ -1005,7 +1005,7 @@
       <header class="app-header">
         <div class="title-block">
           <div class="eyebrow">THE IDOLM@STER MILLION LIVE!</div>
-          <h1>퍼스널 컬러 퀴즈</h1>
+          <h1>퍼스널 컬러 맞추기</h1>
         </div>
         <div class="header-actions">
           <button class="theme-toggle" id="themeToggle" type="button" aria-label="다크모드로 전환" aria-pressed="false">
@@ -1649,7 +1649,7 @@
             try {
               await navigator.share({
                 files: [file],
-                title: "밀리언 라이브 퍼스널 컬러 퀴즈 결과",
+                title: "밀리언 라이브 퍼스널 컬러 맞추기 결과",
                 text: document.getElementById("scoreSummary").textContent
               });
               shared = true;
