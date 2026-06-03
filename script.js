@@ -207,6 +207,7 @@ function renderQuestion() {
 
   setQuestionImage(question);
   renderChoices(question);
+  preloadUpcomingImages();
 }
 
 function renderChoices(question) {
@@ -544,6 +545,10 @@ function makeSeriesPillRows(ctx, seriesValues, maxWidth, gap) {
     return [seriesValues.slice(0, 2), seriesValues.slice(2, 4)];
   }
 
+  if (seriesValues.length === 5) {
+    return [seriesValues.slice(0, 3), seriesValues.slice(3, 5)];
+  }
+
   const rows = [];
   let row = [];
   let rowWidth = 0;
@@ -628,7 +633,8 @@ function getSeriesCanvasColors(series) {
     allstars: { from: "#ff6f8b", to: "#f24a70" },
     million: { from: "#ffd84c", to: "#f4b51e" },
     shiny: { from: "#ff7db7", to: "#7ac7ff" },
-    gakuen: { from: "#ffb13b", to: "#f47a2a" }
+    gakuen: { from: "#ffb13b", to: "#f47a2a" },
+    cinderella: { from: "#5fb5ff", to: "#3f76e8" }
   }[series] || { from: "#8db7ff", to: "#6f9ff2" };
 }
 
@@ -637,7 +643,8 @@ function getSeriesFallbackMark(series) {
     allstars: "AS",
     million: "MS",
     shiny: "SC",
-    gakuen: "G"
+    gakuen: "G",
+    cinderella: "CG"
   }[series] || "@";
 }
 
@@ -859,7 +866,8 @@ function getSeriesBadgeClass(series) {
     allstars: "allstars",
     million: "millionstars",
     shiny: "shinycolors",
-    gakuen: "gakuen"
+    gakuen: "gakuen",
+    cinderella: "cinderella"
   }[series] || series;
 }
 
@@ -944,6 +952,14 @@ function setQuestionImage(question) {
   characterImage.onload = () => imageFrame.classList.remove("is-missing");
   characterImage.onerror = () => imageFrame.classList.add("is-missing");
   characterImage.src = question.image;
+}
+
+function preloadUpcomingImages() {
+  state.questions.slice(state.index + 1, state.index + 3).forEach((question) => {
+    const image = new Image();
+    image.decoding = "async";
+    image.src = question.image;
+  });
 }
 
 function generateDistractors(question, difficulty) {

@@ -268,7 +268,7 @@
     }
 
     .series-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .series-card-all {
@@ -376,6 +376,11 @@
       min-width: 0;
     }
 
+    .series-card-all .group-icons {
+      flex-wrap: wrap;
+      max-width: 236px;
+    }
+
     .group-icon,
     .series-icon-img {
       display: block;
@@ -422,6 +427,10 @@
 
     .series-logo-badge.gakuen {
       background: linear-gradient(135deg, #ffb13b, #f47a2a);
+    }
+
+    .series-logo-badge.cinderella {
+      background: linear-gradient(135deg, #5fb5ff, #3f76e8);
     }
 
     .group-icon.allstars {
@@ -584,10 +593,11 @@
     }
 
     .pool-kicker {
-      color: var(--start-panel-muted);
+      color: var(--muted);
       font-size: 0.78rem;
       font-weight: 900;
       letter-spacing: 0;
+      opacity: 1;
       white-space: nowrap;
     }
 
@@ -598,9 +608,10 @@
       padding: 6px 11px;
       border-radius: 999px;
       background: var(--surface-strong);
-      color: var(--start-panel-ink);
+      color: var(--choice-ink);
       font-size: 0.9rem;
-      font-weight: 950;
+      font-weight: 900;
+      opacity: 1;
       white-space: nowrap;
     }
 
@@ -622,10 +633,11 @@
       padding: 7px 10px 7px 8px;
       border-radius: 13px;
       background: var(--surface-strong);
-      color: var(--ink);
+      color: var(--choice-ink);
       font-size: 0.9rem;
       font-weight: 900;
       line-height: 1.2;
+      opacity: 1;
     }
 
     .pool-series-item .series-logo-badge {
@@ -656,9 +668,10 @@
     }
 
     #poolMeta {
-      color: var(--start-panel-muted);
+      color: var(--muted);
       font-size: 0.9rem;
       font-weight: 800;
+      opacity: 1;
     }
 
     .primary-button {
@@ -1286,6 +1299,30 @@
 
       .series-card-all {
         grid-column: auto;
+      }
+
+      .series-grid .choice-label {
+        grid-template-columns: 1fr;
+        row-gap: 8px;
+      }
+
+      .series-grid .choice-label > span:last-child {
+        justify-self: start;
+        padding-left: 52px;
+        text-align: left;
+      }
+
+      .series-grid .series-card-all .group-choice-main {
+        grid-template-columns: 1fr;
+        gap: 9px;
+      }
+
+      .series-grid .series-card-all > span:last-child {
+        padding-left: 0;
+      }
+
+      .series-card-all .group-icons {
+        max-width: 100%;
       }
 
       .primary-button {
