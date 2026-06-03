@@ -1481,12 +1481,12 @@ function generateDistractors(question, difficulty) {
   const distanceRules = getVisualDistanceRules(difficulty);
   const colors = new Set();
 
-  const addColor = (hex, relaxation = 0) => {
+  const addColor = (hex, relaxation = 0, rulesOverride = distanceRules) => {
     const normalized = hex.toLowerCase();
     if (
       normalized !== correctHex
       && !colors.has(normalized)
-      && isVisuallyDistinctChoice(normalized, correctHex, [...colors], distanceRules, relaxation)
+      && isVisuallyDistinctChoice(normalized, correctHex, [...colors], rulesOverride, relaxation)
     ) {
       colors.add(normalized);
       return true;
@@ -1495,7 +1495,7 @@ function generateDistractors(question, difficulty) {
   };
 
   if (settings.useHairTrap) {
-    addHairTrapColor(question, addColor);
+    addHairTrapColor(question, addColor, difficulty);
   }
 
   if (difficulty === "easy") {
@@ -1587,9 +1587,11 @@ function getDifficultyChoiceSettings(difficulty) {
   return { distractorCount: 5, useHairTrap: true };
 }
 
-function addHairTrapColor(question, addColor) {
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    if (addColor(makeHairTrapColor(question, attempt))) return;
+function addHairTrapColor(question, addColor, difficulty) {
+  const hairTrapRules = getHairTrapDistanceRules(difficulty);
+
+  for (let attempt = 0; attempt < 96; attempt += 1) {
+    if (addColor(makeHairTrapColor(question, attempt), 0, hairTrapRules)) return true;
   }
 
   const hair = question.hairHsl || {
@@ -1598,11 +1600,20 @@ function addHairTrapColor(question, addColor) {
     l: clamp(question.hsl.l - 16, 14, 72)
   };
 
-  addColor(hslToHex(
-    hair.h + randomBetween(16, 28) * randomSign(),
-    clamp(hair.s + randomBetween(10, 18) * randomSign(), 10, 92),
-    clamp(hair.l + randomBetween(10, 18) * randomSign(), 10, 88)
-  ), 3);
+  for (let attempt = 0; attempt < 48; attempt += 1) {
+    const hueShift = randomBetween(16, 34) * randomSign();
+    const saturationShift = randomBetween(10, 24) * randomSign();
+    const lightnessShift = randomBetween(10, 24) * randomSign();
+    const candidate = hslToHex(
+      hair.h + hueShift,
+      clamp(hair.s + saturationShift, 10, 92),
+      clamp(hair.l + lightnessShift, 10, 88)
+    );
+
+    if (addColor(candidate, 4, hairTrapRules)) return true;
+  }
+
+  return false;
 }
 
 function makeHairTrapColor(question, attempt = 0) {
@@ -1611,8 +1622,8 @@ function makeHairTrapColor(question, attempt = 0) {
     s: clamp(question.hsl.s - 18, 12, 76),
     l: clamp(question.hsl.l - 16, 14, 72)
   };
-  const hueRange = attempt < 16 ? 4 : 12;
-  const toneRange = attempt < 16 ? 6 : 14;
+  const hueRange = attempt < 16 ? 4 : attempt < 48 ? 12 : 22;
+  const toneRange = attempt < 16 ? 6 : attempt < 48 ? 14 : 22;
   let candidate = hslToHex(
     hair.h + randomBetween(-hueRange, hueRange),
     clamp(hair.s + randomBetween(-toneRange, toneRange), 10, 92),
@@ -1624,6 +1635,18 @@ function makeHairTrapColor(question, attempt = 0) {
   }
 
   return candidate;
+}
+
+function getHairTrapDistanceRules(difficulty) {
+  if (difficulty === "normal") {
+    return { minFromAnswer: 16, minBetweenChoices: 13 };
+  }
+
+  if (difficulty === "hard") {
+    return { minFromAnswer: 14, minBetweenChoices: 10 };
+  }
+
+  return { minFromAnswer: 11, minBetweenChoices: 8 };
 }
 
 function fillGenerated(colors, targetCount, factory, addColor) {
