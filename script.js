@@ -1610,7 +1610,7 @@ function addHairTrapColor(question, addColor, difficulty) {
       clamp(hair.l + lightnessShift, 10, 88)
     );
 
-    if (addColor(candidate, 4, hairTrapRules)) return true;
+    if (addColor(candidate, 0, hairTrapRules)) return true;
   }
 
   return false;
@@ -1638,15 +1638,8 @@ function makeHairTrapColor(question, attempt = 0) {
 }
 
 function getHairTrapDistanceRules(difficulty) {
-  if (difficulty === "normal") {
-    return { minFromAnswer: 16, minBetweenChoices: 13 };
-  }
-
-  if (difficulty === "hard") {
-    return { minFromAnswer: 14, minBetweenChoices: 10 };
-  }
-
-  return { minFromAnswer: 11, minBetweenChoices: 8 };
+  const { minFromAnswer, minBetweenChoices } = getVisualDistanceRules(difficulty);
+  return { minFromAnswer, minBetweenChoices };
 }
 
 function fillGenerated(colors, targetCount, factory, addColor) {
