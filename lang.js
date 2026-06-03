@@ -73,7 +73,7 @@ window.translations = {
     canvasFooter: "Image Color Quiz",
     resultMessages: {
       perfect: "당신이 아이돌마스터",
-      great: "@틀딱",
+      great: "@고인물",
       good: "@청년",
       fair: "@민이",
       low: "놀안분?",
@@ -142,11 +142,11 @@ window.translations = {
     canvasFooter: "Image Color Quiz",
     resultMessages: {
       perfect: "あなたがアイドルマスター",
-      great: "@古参",
-      good: "@青年",
-      fair: "@民",
-      low: "にわか?",
-      zero: "むり"
+      great: "歴戦のP",
+      good: "中堅P",
+      fair: "新米P",
+      low: "にわか？",
+      zero: "マジ？"
     }
   },
   en: {
@@ -211,9 +211,9 @@ window.translations = {
     canvasFooter: "Image Color Quiz",
     resultMessages: {
       perfect: "You are THE IDOLM@STER",
-      great: "@Old Guard",
-      good: "@Regular",
-      fair: "@Rookie",
+      great: "Veteran P",
+      good: "Seasoned P",
+      fair: "Rookie P",
       low: "Tourist?",
       zero: "Nope"
     }
