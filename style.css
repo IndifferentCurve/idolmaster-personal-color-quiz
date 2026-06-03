@@ -894,12 +894,12 @@
       flex-wrap: wrap;
       align-items: center;
       justify-content: center;
-      gap: 8px 12px;
+      gap: 8px 10px;
       margin-top: 16px;
       color: var(--muted);
       font-size: 0.76rem;
       font-weight: 700;
-      line-height: 1.5;
+      line-height: 1.2;
       text-align: center;
       word-break: keep-all;
       max-width: 100%;
@@ -907,8 +907,13 @@
     }
 
     .source-title {
+      display: inline-flex;
+      align-items: center;
+      min-height: 20px;
       color: var(--ink);
+      font-size: 0.72rem;
       font-weight: 900;
+      line-height: 1;
     }
 
     .source-group {
@@ -916,18 +921,36 @@
       flex-wrap: wrap;
       align-items: center;
       justify-content: center;
-      gap: 5px 8px;
+      gap: 4px 8px;
       min-width: 0;
+      min-height: 24px;
     }
 
     .source-group strong {
+      display: inline-flex;
+      align-items: center;
+      min-height: 20px;
       color: var(--ink);
       font-size: 0.72rem;
       font-weight: 900;
+      line-height: 1;
+    }
+
+    .source-links {
+      display: inline-flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 4px 8px;
+      min-width: 0;
     }
 
     .source-note a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 20px;
       color: var(--muted);
+      line-height: 1;
       text-decoration: none;
       transition: all 0.2s ease;
       overflow-wrap: anywhere;
