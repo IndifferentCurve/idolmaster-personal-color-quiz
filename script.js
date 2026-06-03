@@ -29,6 +29,8 @@ const state = {
   requestedQuestionCount: 5,
   language: "kr",
   currentAnswerFeedback: null,
+  currentCombo: 0,
+  wrongAnswers: [],
   locked: false
 };
 const lastChoiceSignatures = new Map();
@@ -47,8 +49,10 @@ const poolSeriesList = document.getElementById("poolSeriesList");
 const startButton = document.getElementById("startButton");
 const progressText = document.getElementById("progressText");
 const progressBar = document.getElementById("progressBar");
+const comboBadge = document.getElementById("comboBadge");
 const scoreText = document.getElementById("scoreText");
 const imageFrame = document.getElementById("imageFrame");
+const quizStage = document.querySelector(".stage");
 const characterImage = document.getElementById("characterImage");
 const imageFallback = document.getElementById("imageFallback");
 const fallbackName = document.getElementById("fallbackName");
@@ -62,6 +66,15 @@ const resetButton = document.getElementById("resetButton");
 const saveResultButton = document.getElementById("saveResultButton");
 const resultPreview = document.getElementById("resultPreview");
 const resultPreviewImage = document.getElementById("resultPreviewImage");
+const wrongNoteSection = document.getElementById("wrongNoteSection");
+const wrongNoteTitle = document.getElementById("wrongNoteTitle");
+const wrongNoteList = document.getElementById("wrongNoteList");
+const wrongNoteExpandButton = document.getElementById("wrongNoteExpandButton");
+const wrongNoteModal = document.getElementById("wrongNoteModal");
+const wrongNoteBackdrop = document.getElementById("wrongNoteBackdrop");
+const wrongNoteCloseButton = document.getElementById("wrongNoteCloseButton");
+const wrongNoteModalTitle = document.getElementById("wrongNoteModalTitle");
+const wrongNoteModalList = document.getElementById("wrongNoteModalList");
 const scoreUnit = document.getElementById("scoreUnit");
 const homeButton = document.getElementById("homeButton");
 const nextButton = document.getElementById("nextButton");
@@ -70,6 +83,8 @@ const languageButtons = [...document.querySelectorAll(".language-button")];
 const themeStorageKey = "idolmasterColorQuizTheme";
 const languageStorageKey = "idolmasterColorQuizLanguage";
 const appFontStack = "Pretendard, 'Noto Sans KR', Inter, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+let wrongNoteModalCloseTimer = 0;
+let stageGlowTimer = 0;
 const languageMeta = {
   kr: { htmlLang: "ko" },
   jp: { htmlLang: "ja" },
@@ -110,6 +125,12 @@ const translations = {
     totalQuestions: "문항 수",
     resultDifficulty: "난이도",
     series: "시리즈",
+    comboText: (combo) => `${combo} Combo`,
+    wrongNoteTitle: "오답 노트",
+    wrongNoteExpand: "⛶ 전체 보기",
+    wrongNoteClose: "닫기",
+    wrongSelected: "내 선택",
+    wrongAnswer: "정답",
     saveResult: "결과 저장",
     saving: "저장 중",
     backToStart: "처음으로 돌아가기",
@@ -172,6 +193,12 @@ const translations = {
     totalQuestions: "出題数",
     resultDifficulty: "難易度",
     series: "シリーズ",
+    comboText: (combo) => `${combo} Combo`,
+    wrongNoteTitle: "ミスノート",
+    wrongNoteExpand: "⛶ 全体表示",
+    wrongNoteClose: "閉じる",
+    wrongSelected: "選択",
+    wrongAnswer: "正解",
     saveResult: "結果保存",
     saving: "保存中",
     backToStart: "最初に戻る",
@@ -234,6 +261,12 @@ const translations = {
     totalQuestions: "Questions",
     resultDifficulty: "Difficulty",
     series: "Series",
+    comboText: (combo) => `${combo} Combo`,
+    wrongNoteTitle: "Missed Colors",
+    wrongNoteExpand: "⛶ View All",
+    wrongNoteClose: "Close",
+    wrongSelected: "Picked",
+    wrongAnswer: "Answer",
     saveResult: "Save Result",
     saving: "Saving",
     backToStart: "Back to Start",
@@ -431,11 +464,20 @@ questionCountInput.addEventListener("blur", () => {
 startButton.addEventListener("click", startGame);
 resetButton.addEventListener("click", resetGame);
 saveResultButton.addEventListener("click", saveResultImage);
+wrongNoteExpandButton?.addEventListener("click", openWrongNoteModal);
+wrongNoteCloseButton?.addEventListener("click", closeWrongNoteModal);
+wrongNoteBackdrop?.addEventListener("click", closeWrongNoteModal);
 homeButton.addEventListener("click", resetGame);
 nextButton.addEventListener("click", continueAfterFeedback);
 themeToggle.addEventListener("click", () => {
   const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
   applyTheme(nextTheme, true);
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && wrongNoteModal && !wrongNoteModal.hidden) {
+    closeWrongNoteModal();
+  }
 });
 
 updateStartSummary();
@@ -516,6 +558,10 @@ function applyLanguage(language, shouldStore = false) {
   setText(".result-stat:nth-child(2) > span", t("totalQuestions"));
   setText(".result-stat:nth-child(3) > span", t("resultDifficulty"));
   setText(".result-stat-series > span", t("series"));
+  setText(wrongNoteTitle, t("wrongNoteTitle"));
+  setText(wrongNoteModalTitle, t("wrongNoteTitle"));
+  setText(wrongNoteExpandButton, t("wrongNoteExpand"));
+  wrongNoteCloseButton?.setAttribute("aria-label", t("wrongNoteClose"));
   setText("#saveResultButton", t("saveResult"));
   setText("#resetButton", t("backToStart"));
   setText("#resultPreview span", t("resultImage"));
@@ -545,6 +591,7 @@ function refreshLocalizedScreen() {
     renderQuestionText(question);
     updateQuestionImageText(question);
     updateSwatchAriaLabels();
+    updateComboBadge(false);
     if (state.currentAnswerFeedback) {
       renderAnswerNote(
         state.currentAnswerFeedback.isCorrect,
@@ -559,6 +606,9 @@ function refreshLocalizedScreen() {
 
   if (screens.result.classList.contains("is-active") && state.questions.length) {
     renderResultDetails();
+    if (wrongNoteModal && !wrongNoteModal.hidden) {
+      renderWrongAnswerList(wrongNoteModalList, "modal");
+    }
   }
 }
 
@@ -620,6 +670,8 @@ function startGame() {
   state.questions = pool.slice(0, total);
   state.index = 0;
   state.correct = 0;
+  state.currentCombo = 0;
+  state.wrongAnswers = [];
   state.difficulty = document.querySelector("input[name='difficulty']:checked").value;
   state.series = getSelectedSeriesValues();
   showScreen("quiz");
@@ -639,6 +691,10 @@ function renderQuestion() {
   answerNote.innerHTML = "";
   feedback.className = "feedback";
   state.currentAnswerFeedback = null;
+  imageFrame.classList.remove("is-shaking");
+  imageFrame.classList.remove("is-answer-glowing");
+  quizStage?.classList.remove("is-answer-glowing");
+  updateComboBadge(false);
   nextButton.hidden = true;
   nextButton.textContent = t("confirm");
 
@@ -665,6 +721,7 @@ function renderChoices(question) {
     button.type = "button";
     button.className = "color-choice";
     button.style.background = choice.hex;
+    button.style.setProperty("--choice-hex", choice.hex);
     button.dataset.hex = choice.hex.toLowerCase();
     button.setAttribute("aria-label", t("swatchLabel", index + 1));
     button.addEventListener("click", () => judgeAnswer(button, choice, question));
@@ -700,12 +757,18 @@ function judgeAnswer(button, choice, question) {
   const isCorrect = choice.isAnswer;
   if (isCorrect) {
     state.correct += 1;
+    state.currentCombo += 1;
     button.classList.add("is-answer");
+    triggerCorrectFeedback(button, question.hex);
   } else {
+    state.currentCombo = 0;
     button.classList.add("is-wrong");
+    triggerWrongFeedback();
+    recordWrongAnswer(question, choice.hex);
     const answerButton = [...swatches.children].find((item) => item.dataset.hex === question.hex.toLowerCase());
     if (answerButton) answerButton.classList.add("is-answer");
   }
+  updateComboBadge(isCorrect);
 
   state.currentAnswerFeedback = {
     isCorrect,
@@ -723,7 +786,7 @@ function judgeAnswer(button, choice, question) {
   });
   nextButton.textContent = state.index + 1 >= state.questions.length ? t("viewResult") : t("confirm");
   nextButton.hidden = false;
-  nextButton.focus();
+  nextButton.focus({ preventScroll: true });
 }
 
 function renderAnswerNote(isCorrect, answerHex, selectedHex) {
@@ -748,6 +811,68 @@ function renderAnswerNote(isCorrect, answerHex, selectedHex) {
       </span>
     </div>
   `;
+}
+
+function updateComboBadge(animate = false) {
+  if (!comboBadge) return;
+  comboBadge.hidden = false;
+
+  if (state.currentCombo < 2) {
+    comboBadge.textContent = "";
+    comboBadge.setAttribute("aria-hidden", "true");
+    comboBadge.classList.remove("is-visible", "is-popping");
+    return;
+  }
+
+  comboBadge.textContent = t("comboText", state.currentCombo);
+  comboBadge.setAttribute("aria-hidden", "false");
+  comboBadge.classList.add("is-visible");
+
+  if (animate) {
+    comboBadge.classList.remove("is-popping");
+    void comboBadge.offsetWidth;
+    comboBadge.classList.add("is-popping");
+  }
+}
+
+function triggerCorrectFeedback(button, answerHex) {
+  const stage = button.closest(".stage") || quizStage;
+  if (!stage) return;
+
+  window.clearTimeout(stageGlowTimer);
+  stage.style.setProperty("--stage-answer-glow", answerHex);
+  stage.classList.remove("is-answer-glowing");
+  void stage.offsetWidth;
+  stage.classList.add("is-answer-glowing");
+
+  imageFrame.style.setProperty("--image-answer-glow", answerHex);
+  imageFrame.classList.remove("is-answer-glowing");
+  void imageFrame.offsetWidth;
+  imageFrame.classList.add("is-answer-glowing");
+
+  stageGlowTimer = window.setTimeout(() => {
+    stage.classList.remove("is-answer-glowing");
+    imageFrame.classList.remove("is-answer-glowing");
+  }, 1180);
+}
+
+function triggerWrongFeedback() {
+  imageFrame.classList.remove("is-shaking");
+  void imageFrame.offsetWidth;
+  imageFrame.classList.add("is-shaking");
+
+  window.setTimeout(() => {
+    imageFrame.classList.remove("is-shaking");
+  }, 340);
+}
+
+function recordWrongAnswer(question, selectedHex) {
+  state.wrongAnswers.push({
+    idol: question,
+    image: question.image,
+    selectedHex,
+    answerHex: question.hex
+  });
 }
 
 function formatHex(hex) {
@@ -783,9 +908,110 @@ function renderResultDetails() {
   document.getElementById("resultTotal").textContent = t("countWithUnit", total);
   document.getElementById("resultDifficulty").textContent = getDifficultyLabel(state.difficulty);
   renderResultSeries(state.series);
+  renderWrongAnswers();
   const resultMessage = document.getElementById("resultMessage");
   resultMessage.textContent = getResultMessage(percent);
   resultMessage.classList.toggle("is-perfect", percent === 100);
+}
+
+function renderWrongAnswers() {
+  if (!wrongNoteSection || !wrongNoteList) return;
+
+  wrongNoteSection.hidden = state.wrongAnswers.length === 0;
+  if (wrongNoteExpandButton) wrongNoteExpandButton.hidden = state.wrongAnswers.length === 0;
+  renderWrongAnswerList(wrongNoteList, "compact");
+  if (!state.wrongAnswers.length) {
+    hideWrongNoteModalImmediately();
+    return;
+  }
+}
+
+function renderWrongAnswerList(target, variant = "compact") {
+  if (!target) return;
+  target.innerHTML = "";
+
+  state.wrongAnswers.forEach((item) => {
+    target.appendChild(createWrongAnswerCard(item, variant));
+  });
+}
+
+function createWrongAnswerCard(item, variant = "compact") {
+  const card = document.createElement("article");
+  card.className = `wrong-note-card ${variant === "modal" ? "is-modal" : ""}`.trim();
+
+  const thumbnail = document.createElement("img");
+  thumbnail.className = "wrong-note-thumb";
+  thumbnail.src = item.image;
+  thumbnail.alt = t("illustrationAlt", getIdolDisplayName(item.idol));
+  thumbnail.loading = "lazy";
+  thumbnail.decoding = "async";
+
+  const body = document.createElement("div");
+  body.className = "wrong-note-body";
+
+  const name = document.createElement("strong");
+  name.className = "wrong-note-name";
+  name.textContent = getIdolDisplayName(item.idol);
+
+  const colors = document.createElement("div");
+  colors.className = "wrong-note-colors";
+  colors.appendChild(createWrongColorBadge(t("wrongSelected"), item.selectedHex, "is-picked"));
+  colors.appendChild(createWrongColorBadge(t("wrongAnswer"), item.answerHex, "is-correct"));
+
+  body.append(name, colors);
+  card.append(thumbnail, body);
+  return card;
+}
+
+function createWrongColorBadge(label, hex, className) {
+  const formattedHex = formatHex(hex);
+  const badge = document.createElement("span");
+  badge.className = `wrong-color-badge ${className}`;
+
+  const chip = document.createElement("span");
+  chip.className = "mini-chip";
+  chip.style.background = formattedHex;
+
+  const text = document.createElement("span");
+  text.textContent = `${label} ${formattedHex}`;
+
+  badge.append(chip, text);
+  return badge;
+}
+
+function openWrongNoteModal() {
+  if (!wrongNoteModal || !wrongNoteModalList || !state.wrongAnswers.length) return;
+
+  window.clearTimeout(wrongNoteModalCloseTimer);
+  renderWrongAnswerList(wrongNoteModalList, "modal");
+  wrongNoteModal.hidden = false;
+  document.body.classList.add("is-modal-open");
+  requestAnimationFrame(() => {
+    wrongNoteModal.classList.add("is-open");
+    wrongNoteCloseButton?.focus({ preventScroll: true });
+  });
+}
+
+function closeWrongNoteModal() {
+  if (!wrongNoteModal || wrongNoteModal.hidden) return;
+
+  wrongNoteModal.classList.remove("is-open");
+  document.body.classList.remove("is-modal-open");
+  wrongNoteModalCloseTimer = window.setTimeout(() => {
+    wrongNoteModal.hidden = true;
+    wrongNoteModalList.innerHTML = "";
+    wrongNoteExpandButton?.focus({ preventScroll: true });
+  }, 180);
+}
+
+function hideWrongNoteModalImmediately() {
+  window.clearTimeout(wrongNoteModalCloseTimer);
+  document.body.classList.remove("is-modal-open");
+  if (wrongNoteModal) {
+    wrongNoteModal.classList.remove("is-open");
+    wrongNoteModal.hidden = true;
+  }
+  if (wrongNoteModalList) wrongNoteModalList.innerHTML = "";
 }
 
 async function saveResultImage() {
@@ -876,7 +1102,7 @@ async function createResultCanvas() {
   ctx.shadowColor = colors.shadow;
   ctx.shadowBlur = 48;
   ctx.shadowOffsetY = 20;
-  drawRoundRect(ctx, 72, 72, 936, 936, 48, colors.card);
+  drawRoundRect(ctx, 96, 96, 888, 888, 48, colors.card);
   ctx.restore();
 
   ctx.fillStyle = colors.muted;
@@ -897,21 +1123,21 @@ async function createResultCanvas() {
   ctx.textBaseline = "alphabetic";
   ctx.fillText(document.getElementById("scoreSummary").textContent, size / 2, 548);
 
-  const statsX = 130;
-  const statsY = 600;
-  const statsWidth = 820;
+  const statsX = 140;
+  const statsY = 594;
+  const statsWidth = 800;
   const statsGap = 20;
   const statCardWidth = (statsWidth - statsGap * 2) / 3;
   stats.forEach(([label, value], index) => {
     const x = statsX + index * (statCardWidth + statsGap);
-    drawCanvasStatCard(ctx, x, statsY, statCardWidth, 116, label, value, colors);
+    drawCanvasStatCard(ctx, x, statsY, statCardWidth, 112, label, value, colors);
   });
 
   drawResultSeriesCanvas(ctx, {
-    x: 130,
-    y: 746,
-    width: 820,
-    height: 202,
+    x: 140,
+    y: 724,
+    width: 800,
+    height: 204,
     activeSeries,
     seriesIconImages,
     colors
@@ -921,7 +1147,7 @@ async function createResultCanvas() {
   ctx.fillStyle = colors.muted;
   ctx.font = `700 24px ${appFontStack}`;
   ctx.textBaseline = "alphabetic";
-  ctx.fillText(t("canvasFooter"), size / 2, 982);
+  ctx.fillText(t("canvasFooter"), size / 2, 958);
   return canvas;
 }
 
@@ -998,7 +1224,9 @@ function getSeriesCanvasLayout(ctx, seriesValues, width, height) {
     { fontSize: 28, titleFontSize: 26, pillHeight: 52, rowGap: 16, gap: 16, padX: 18, badgeWidth: 42, badgeHeight: 32, badgeGap: 12, listTop: 74, bottomPadding: 24 },
     { fontSize: 26, titleFontSize: 25, pillHeight: 48, rowGap: 12, gap: 12, padX: 16, badgeWidth: 38, badgeHeight: 30, badgeGap: 10, listTop: 70, bottomPadding: 22 },
     { fontSize: 24, titleFontSize: 24, pillHeight: 44, rowGap: 10, gap: 10, padX: 14, badgeWidth: 34, badgeHeight: 28, badgeGap: 9, listTop: 66, bottomPadding: 22 },
-    { fontSize: 22, titleFontSize: 23, pillHeight: 40, rowGap: 8, gap: 8, padX: 12, badgeWidth: 31, badgeHeight: 25, badgeGap: 8, listTop: 64, bottomPadding: 20 }
+    { fontSize: 22, titleFontSize: 23, pillHeight: 40, rowGap: 8, gap: 8, padX: 12, badgeWidth: 31, badgeHeight: 25, badgeGap: 8, listTop: 62, bottomPadding: 18 },
+    { fontSize: 20, titleFontSize: 22, pillHeight: 36, rowGap: 6, gap: 8, padX: 10, badgeWidth: 29, badgeHeight: 23, badgeGap: 7, listTop: 56, bottomPadding: 16 },
+    { fontSize: 18, titleFontSize: 21, pillHeight: 34, rowGap: 5, gap: 7, padX: 9, badgeWidth: 27, badgeHeight: 22, badgeGap: 6, listTop: 54, bottomPadding: 14 }
   ];
   const maxWidth = width - 48;
 
@@ -1253,12 +1481,18 @@ function downloadBlob(blob, fileName) {
 }
 
 function resetGame() {
+  hideWrongNoteModalImmediately();
   state.questions = [];
   state.index = 0;
   state.correct = 0;
   state.locked = false;
   state.currentAnswerFeedback = null;
+  state.currentCombo = 0;
+  state.wrongAnswers = [];
+  updateComboBadge(false);
   nextButton.hidden = true;
+  if (wrongNoteSection) wrongNoteSection.hidden = true;
+  if (wrongNoteList) wrongNoteList.innerHTML = "";
   resultPreview.hidden = true;
   resultPreviewImage.removeAttribute("src");
   showScreen("start");
@@ -1268,6 +1502,7 @@ function resetGame() {
 function showScreen(name) {
   Object.values(screens).forEach((screen) => screen.classList.remove("is-active"));
   screens[name].classList.add("is-active");
+  window.scrollTo({ top: 0, left: 0, behavior: "auto" });
 }
 
 function inferMillionSeries(idol) {

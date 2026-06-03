@@ -167,7 +167,7 @@
           </div>
         </section>
 
-        <fieldset class="panel">
+        <fieldset class="panel difficulty-panel">
           <legend>난이도</legend>
           <div class="difficulty-grid">
             <label class="choice-label">
@@ -240,6 +240,7 @@
           <div class="progress-track" aria-hidden="true">
             <div class="progress-bar" id="progressBar"></div>
           </div>
+          <div class="combo-badge" id="comboBadge" aria-live="polite" hidden>2 Combo</div>
         </div>
 
         <div class="stage">
@@ -291,6 +292,13 @@
               <div class="result-series-list" id="resultGroup" aria-label="선택한 시리즈"></div>
             </div>
           </div>
+          <section class="wrong-note" id="wrongNoteSection" hidden>
+            <div class="wrong-note-head">
+              <h3 id="wrongNoteTitle">오답 노트</h3>
+              <button class="wrong-note-expand" id="wrongNoteExpandButton" type="button">⛶ 전체 보기</button>
+            </div>
+            <div class="wrong-note-list" id="wrongNoteList"></div>
+          </section>
           <div class="result-actions">
             <button class="save-button" id="saveResultButton" type="button">결과 저장</button>
             <button class="ghost-button" id="resetButton" type="button">처음으로 돌아가기</button>
@@ -303,6 +311,17 @@
       </div>
     </section>
   </main>
+
+  <div class="wrong-note-modal" id="wrongNoteModal" role="dialog" aria-modal="true" aria-labelledby="wrongNoteModalTitle" hidden>
+    <div class="wrong-note-backdrop" id="wrongNoteBackdrop"></div>
+    <div class="wrong-note-modal-content" role="document">
+      <div class="wrong-note-modal-head">
+        <h2 id="wrongNoteModalTitle">오답 노트</h2>
+        <button class="wrong-note-close" id="wrongNoteCloseButton" type="button" aria-label="닫기">×</button>
+      </div>
+      <div class="wrong-note-modal-list" id="wrongNoteModalList"></div>
+    </div>
+  </div>
 
   <!-- Series data files register themselves before data.js builds the combined quiz data. -->
   <script src="data/series/allstars.js?v=1.1"></script>
