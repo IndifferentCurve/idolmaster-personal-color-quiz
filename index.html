@@ -9,7 +9,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
   <!-- style.css contains the full UI styling that used to live in the inline <style> block. -->
-  <link rel="stylesheet" href="style.css?v=1.2">
+  <link rel="stylesheet" href="style.css?v=1.3">
 </head>
 <body>
   <main class="app">
@@ -73,6 +73,14 @@
                     <img class="series-icon-img" src="assets/icons/sidem.svg" alt="">
                   </span>
                 </span>
+                <strong></strong>
+              </span>
+              <span></span>
+            </label>
+            <label class="choice-label series-card-custom">
+              <input type="checkbox" name="series" value="custom">
+              <span class="group-choice-main">
+                <span class="custom-mode-symbol" aria-hidden="true"></span>
                 <strong></strong>
               </span>
               <span></span>
@@ -150,6 +158,27 @@
               <span></span>
             </label>
           </div>
+          <div class="custom-panel" id="customPanel" hidden>
+            <div class="custom-panel-head">
+              <div class="custom-copy">
+                <strong id="customPanelTitle"></strong>
+                <span id="customPanelHint"></span>
+              </div>
+              <strong class="custom-selected-count" id="customSelectedCount"></strong>
+            </div>
+            <div class="custom-filter-row" id="customSeriesFilters" role="group" aria-label=""></div>
+            <div class="custom-search-row">
+              <span class="custom-search-symbol" aria-hidden="true"></span>
+              <input class="custom-search-input" id="customSearchInput" type="search" autocomplete="off" spellcheck="false">
+              <button class="custom-search-clear" id="customSearchClearButton" type="button" hidden aria-label=""></button>
+            </div>
+            <div class="custom-action-row">
+              <button class="ghost-button custom-action-button" id="customSelectVisibleButton" type="button"></button>
+              <button class="ghost-button custom-action-button" id="customClearVisibleButton" type="button"></button>
+              <button class="ghost-button custom-action-button is-danger" id="customResetButton" type="button"></button>
+            </div>
+            <div class="custom-idol-grid" id="customIdolGrid" role="list"></div>
+          </div>
         </fieldset>
 
         <section class="panel" aria-labelledby="countTitle">
@@ -221,6 +250,14 @@
             <a href="https://gakuen.idolmaster-official.jp/" target="_blank" rel="noopener">Gakuen</a>
             <a href="https://idolmaster-official.jp/sidem/" target="_blank" rel="noopener">SideM</a>
           </span>
+        </span>
+        <span class="source-repository">
+          <a href="https://github.com/IndifferentCurve/idolmaster-personal-color-quiz" target="_blank" rel="noopener">
+            <svg class="github-mark" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 2C6.48 2 2 6.58 2 12.24c0 4.52 2.87 8.36 6.84 9.72.5.09.68-.22.68-.49 0-.24-.01-.88-.01-1.73-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.04 1.03-2.75-.1-.26-.45-1.31.1-2.72 0 0 .84-.28 2.75 1.05A9.32 9.32 0 0 1 12 6.96c.85 0 1.71.12 2.51.35 1.9-1.33 2.74-1.05 2.74-1.05.55 1.41.2 2.46.1 2.72.64.71 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.95.68 1.92 0 1.39-.01 2.51-.01 2.85 0 .27.18.58.69.48A10.2 10.2 0 0 0 22 12.24C22 6.58 17.52 2 12 2Z" />
+            </svg>
+            <span>IndifferentCurve/idolmaster-personal-color-quiz</span>
+          </a>
         </span>
       </footer>
     </section>
@@ -307,14 +344,22 @@
             <button class="save-button" id="saveResultButton" type="button"></button>
             <button class="ghost-button" id="resetButton" type="button"></button>
           </div>
-          <div class="result-preview" id="resultPreview" hidden>
-            <span></span>
-            <img id="resultPreviewImage" alt="">
-          </div>
         </div>
       </div>
     </section>
   </main>
+
+  <div class="result-preview-modal" id="resultPreview" role="dialog" aria-modal="true" aria-labelledby="resultPreviewTitle" hidden>
+    <div class="result-preview-backdrop" id="resultPreviewBackdrop"></div>
+    <div class="result-preview-card" role="document">
+      <div class="result-preview-head">
+        <h2 id="resultPreviewTitle"></h2>
+        <button class="result-preview-close" id="resultPreviewCloseButton" type="button" aria-label="">×</button>
+      </div>
+      <img id="resultPreviewImage" alt="">
+      <button class="save-button result-preview-action" id="resultPreviewActionButton" type="button"></button>
+    </div>
+  </div>
 
   <div class="wrong-note-modal" id="wrongNoteModal" role="dialog" aria-modal="true" aria-labelledby="wrongNoteModalTitle" hidden>
     <div class="wrong-note-backdrop" id="wrongNoteBackdrop"></div>
@@ -335,8 +380,8 @@
   <script src="data/series/gakuen.js?v=1.1"></script>
   <script src="data/series/sidem.js?v=1.1"></script>
   <script src="data.js?v=1.1"></script>
-  <script src="lang.js?v=1.2"></script>
+  <script src="lang.js?v=1.3"></script>
   <!-- script.js wires the UI events and game flow after the data is ready. -->
-  <script src="script.js?v=1.5"></script>
+  <script src="script.js?v=1.6"></script>
 </body>
 </html>

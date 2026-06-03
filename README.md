@@ -1,6 +1,8 @@
 # THE IDOLM@STER Image Color Quiz
 
-## [지금 플레이하기 / 今すぐプレイ / Play Now](https://indifferentcurve.github.io/idolmaster-personal-color-quiz/)
+## [Play Now / 지금 플레이 / 今すぐプレイ](https://indifferentcurve.github.io/idolmaster-personal-color-quiz/)
+
+[Repository](https://github.com/IndifferentCurve/idolmaster-personal-color-quiz)
 
 - [한국어](#한국어)
 - [日本語](#日本語)
@@ -23,13 +25,15 @@
 
 ### 주요 기능
 
-- 시리즈별 선택 또는 전체 아이돌 풀 플레이
+- 시리즈별 출제, 전체 출제, 커스텀 아이돌 직접 선택
+- 커스텀 선택 창의 시리즈 필터와 다국어 검색
 - Easy, Normal, Hard, Very Hard 난이도
-- 직접 입력 또는 프리셋 기반 문항 수 설정
+- 문항 수 프리셋, 전체, 직접 입력
 - 다크 모드 / 라이트 모드
 - 한국어, 일본어, 영어 UI
-- 정답/오답 피드백, 콤보, 오답 노트
-- 결과 이미지 저장 및 공유
+- 콤보, 정답/오답 피드백, 오답 노트
+- 결과 이미지 미리보기, 저장, 공유
+- WebP 이미지와 지연 로딩 기반의 가벼운 로딩
 
 ### 로컬 실행
 
@@ -48,11 +52,11 @@ http://localhost:8765/
 ### 출처
 
 - HEX: [imas-db](https://imas-db.jp/misc/color.html)
-- 이미지: 각 시리즈 공식/참조 출처 및 포함된 assets README 참고
+- 이미지: 각 시리즈 공식/참조 출처 및 `assets` 폴더의 README/manifest 파일 참고
 
 ### 안내
 
-이 프로젝트는 팬메이드 퀴즈입니다. THE IDOLM@STER 및 각 시리즈 관련 권리는 원 권리자에게 있습니다.
+이 프로젝트는 팬메이드 퀴즈입니다. THE IDOLM@STER 및 관련 시리즈의 권리는 각 권리자에게 있습니다.
 
 ---
 
@@ -71,23 +75,25 @@ http://localhost:8765/
 
 ### 主な機能
 
-- シリーズ別選択、または全アイドルから出題
+- シリーズ別出題、全体出題、カスタムアイドル選択
+- カスタム選択画面のシリーズフィルターと多言語検索
 - Easy, Normal, Hard, Very Hard の難易度
-- 直接入力またはプリセットによる出題数設定
+- 出題数プリセット、全問、直接入力
 - ダークモード / ライトモード
-- 韓国語、日本語、英語 UI
-- 正解/不正解フィードバック、コンボ、ミスノート
-- 結果画像の保存と共有
+- 韓国語、日本語、英語UI
+- コンボ、正解/不正解フィードバック、間違いノート
+- 結果画像のプレビュー、保存、共有
+- WebP画像と遅延読み込みによる軽量な表示
 
 ### ローカル実行
 
-静的Webアプリのため、ビルドなしで実行できます。
+静的Webアプリなので、ビルドなしで実行できます。
 
 ```bash
 python -m http.server 8765
 ```
 
-ブラウザで以下にアクセスします。
+その後、ブラウザで以下のURLを開きます。
 
 ```text
 http://localhost:8765/
@@ -96,11 +102,11 @@ http://localhost:8765/
 ### 出典
 
 - HEX: [imas-db](https://imas-db.jp/misc/color.html)
-- 画像: 各シリーズの公式/参照元、および同梱 assets README を参照
+- 画像: 各シリーズの公式/参考元、および `assets` フォルダ内の README/manifest を参照
 
 ### 注意
 
-このプロジェクトはファンメイドのクイズです。THE IDOLM@STER および各シリーズに関する権利は、それぞれの権利者に帰属します。
+このプロジェクトはファンメイドのクイズです。THE IDOLM@STER および関連シリーズの権利は、それぞれの権利者に帰属します。
 
 ---
 
@@ -119,13 +125,15 @@ A web-based quiz game where you look at idol illustrations and choose the correc
 
 ### Features
 
-- Play by selected series or from the full idol pool
+- Play by selected series, the full idol pool, or a custom idol selection
+- Series filters and multilingual search in custom selection
 - Easy, Normal, Hard, and Very Hard difficulties
-- Question count presets or manual input
+- Question count presets, all questions, or manual input
 - Dark mode / light mode
 - Korean, Japanese, and English UI
-- Correct/wrong feedback, combo system, and missed-answer notes
-- Result image saving and sharing
+- Combo system, correct/wrong feedback, and missed-answer notes
+- Result image preview, saving, and sharing
+- Lightweight loading with WebP assets and lazy-loaded images
 
 ### Local Run
 
@@ -144,7 +152,7 @@ http://localhost:8765/
 ### Sources
 
 - HEX: [imas-db](https://imas-db.jp/misc/color.html)
-- Images: official/reference sources for each series and included assets README files
+- Images: official/reference sources for each series and the README/manifest files inside `assets`
 
 ### Notice
 

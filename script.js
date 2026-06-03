@@ -25,9 +25,13 @@ const state = {
   correct: 0,
   difficulty: "normal",
   series: ["all"],
+  resultSeries: [],
   countMode: "preset",
   requestedQuestionCount: 5,
   language: "ko",
+  customSeriesFilter: seriesOrder[0] || "allstars",
+  customSearchQuery: "",
+  customSelectedIds: new Set(),
   currentAnswerFeedback: null,
   currentCombo: 0,
   wrongAnswers: [],
@@ -43,6 +47,15 @@ const screens = {
 
 const questionCountInput = document.getElementById("questionCount");
 const questionCountField = questionCountInput.closest(".number-field");
+const customPanel = document.getElementById("customPanel");
+const customSeriesFilters = document.getElementById("customSeriesFilters");
+const customIdolGrid = document.getElementById("customIdolGrid");
+const customSelectedCount = document.getElementById("customSelectedCount");
+const customSearchInput = document.getElementById("customSearchInput");
+const customSearchClearButton = document.getElementById("customSearchClearButton");
+const customSelectVisibleButton = document.getElementById("customSelectVisibleButton");
+const customClearVisibleButton = document.getElementById("customClearVisibleButton");
+const customResetButton = document.getElementById("customResetButton");
 const poolTitle = document.getElementById("poolTitle");
 const poolMeta = document.getElementById("poolMeta");
 const poolSeriesList = document.getElementById("poolSeriesList");
@@ -65,7 +78,11 @@ const answerNote = document.getElementById("answerNote");
 const resetButton = document.getElementById("resetButton");
 const saveResultButton = document.getElementById("saveResultButton");
 const resultPreview = document.getElementById("resultPreview");
+const resultPreviewBackdrop = document.getElementById("resultPreviewBackdrop");
+const resultPreviewCloseButton = document.getElementById("resultPreviewCloseButton");
+const resultPreviewTitle = document.getElementById("resultPreviewTitle");
 const resultPreviewImage = document.getElementById("resultPreviewImage");
+const resultPreviewActionButton = document.getElementById("resultPreviewActionButton");
 const wrongNoteSection = document.getElementById("wrongNoteSection");
 const wrongNoteTitle = document.getElementById("wrongNoteTitle");
 const wrongNoteList = document.getElementById("wrongNoteList");
@@ -83,8 +100,73 @@ const languageButtons = [...document.querySelectorAll(".language-button")];
 const themeStorageKey = "idolmasterColorQuizTheme";
 const languageStorageKey = "idolmasterColorQuizLanguage";
 const appFontStack = "Pretendard, 'Noto Sans KR', Inter, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+const repositoryLabel = "IndifferentCurve/idolmaster-personal-color-quiz";
+const githubMarkPath = "M12 2C6.48 2 2 6.58 2 12.24c0 4.52 2.87 8.36 6.84 9.72.5.09.68-.22.68-.49 0-.24-.01-.88-.01-1.73-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.04 1.03-2.75-.1-.26-.45-1.31.1-2.72 0 0 .84-.28 2.75 1.05A9.32 9.32 0 0 1 12 6.96c.85 0 1.71.12 2.51.35 1.9-1.33 2.74-1.05 2.74-1.05.55 1.41.2 2.46.1 2.72.64.71 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.95.68 1.92 0 1.39-.01 2.51-.01 2.85 0 .27.18.58.69.48A10.2 10.2 0 0 0 22 12.24C22 6.58 17.52 2 12 2Z";
+const romajiVariantPairs = Object.freeze([
+  ["shi", "si"],
+  ["sha", "sya"],
+  ["shu", "syu"],
+  ["sho", "syo"],
+  ["chi", "ti"],
+  ["cha", "tya"],
+  ["chu", "tyu"],
+  ["cho", "tyo"],
+  ["tsu", "tu"],
+  ["fu", "hu"],
+  ["ji", "zi"],
+  ["ja", "zya"],
+  ["ju", "zyu"],
+  ["jo", "zyo"]
+]);
+const romajiKanaMap = Object.freeze({
+  kya: "きゃ", kyu: "きゅ", kyo: "きょ",
+  gya: "ぎゃ", gyu: "ぎゅ", gyo: "ぎょ",
+  sha: "しゃ", shu: "しゅ", sho: "しょ",
+  sya: "しゃ", syu: "しゅ", syo: "しょ",
+  ja: "じゃ", ju: "じゅ", jo: "じょ",
+  jya: "じゃ", jyu: "じゅ", jyo: "じょ",
+  zya: "じゃ", zyu: "じゅ", zyo: "じょ",
+  cha: "ちゃ", chu: "ちゅ", cho: "ちょ",
+  tya: "ちゃ", tyu: "ちゅ", tyo: "ちょ",
+  nya: "にゃ", nyu: "にゅ", nyo: "にょ",
+  hya: "ひゃ", hyu: "ひゅ", hyo: "ひょ",
+  bya: "びゃ", byu: "びゅ", byo: "びょ",
+  pya: "ぴゃ", pyu: "ぴゅ", pyo: "ぴょ",
+  mya: "みゃ", myu: "みゅ", myo: "みょ",
+  rya: "りゃ", ryu: "りゅ", ryo: "りょ",
+  fa: "ふぁ", fi: "ふぃ", fe: "ふぇ", fo: "ふぉ",
+  va: "ゔぁ", vi: "ゔぃ", vu: "ゔ", ve: "ゔぇ", vo: "ゔぉ",
+  a: "あ", i: "い", u: "う", e: "え", o: "お",
+  ka: "か", ki: "き", ku: "く", ke: "け", ko: "こ",
+  ga: "が", gi: "ぎ", gu: "ぐ", ge: "げ", go: "ご",
+  sa: "さ", shi: "し", si: "し", su: "す", se: "せ", so: "そ",
+  za: "ざ", ji: "じ", zi: "じ", zu: "ず", ze: "ぜ", zo: "ぞ",
+  ta: "た", chi: "ち", ti: "ち", tsu: "つ", tu: "つ", te: "て", to: "と",
+  da: "だ", di: "ぢ", du: "づ", de: "で", do: "ど",
+  na: "な", ni: "に", nu: "ぬ", ne: "ね", no: "の",
+  ha: "は", hi: "ひ", fu: "ふ", hu: "ふ", he: "へ", ho: "ほ",
+  ba: "ば", bi: "び", bu: "ぶ", be: "べ", bo: "ぼ",
+  pa: "ぱ", pi: "ぴ", pu: "ぷ", pe: "ぺ", po: "ぽ",
+  ma: "ま", mi: "み", mu: "む", me: "め", mo: "も",
+  ya: "や", yu: "ゆ", yo: "よ",
+  ra: "ら", ri: "り", ru: "る", re: "れ", ro: "ろ",
+  wa: "わ", wi: "うぃ", we: "うぇ", wo: "を"
+});
+const romajiKanaKeys = Object.freeze(Object.keys(romajiKanaMap).sort((left, right) => right.length - left.length));
+const customFilterButtonCache = new Map();
+const customIdolCardCache = new Map();
+const customFilterValues = Object.freeze(["all", ...seriesOrder]);
 let wrongNoteModalCloseTimer = 0;
+let resultPreviewCloseTimer = 0;
 let stageGlowTimer = 0;
+let stageGlowFadeTimer = 0;
+let themeTransitionCleanupFrame = 0;
+let themeTransitionCleanupTimer = 0;
+let customGridRenderFrame = 0;
+let preparedResultBlob = null;
+let preparedResultFileName = "";
+let customRenderedSeriesFilter = "";
+let customRenderedSearchQuery = "";
 const sidemJapaneseUnitLabels = Object.freeze({
   Jupiter: "Jupiter",
   "DRAMATIC STARS": "DRAMATIC STARS",
@@ -121,12 +203,19 @@ const enrichedIdols = ALL_IDOLS.map((idol) => {
     ...idol,
     series,
     image: resolveImagePath(idol),
+    faceImage: resolveFaceImagePath(idol),
     hsl,
     hairHex,
     hairHsl: hexToHsl(hairHex)
   };
 });
+const enrichedIdolByNo = new Map(enrichedIdols.map((idol) => [idol.no, idol]));
+const customIdolsBySeries = new Map([["all", enrichedIdols]]);
+seriesOrder.forEach((series) => {
+  customIdolsBySeries.set(series, enrichedIdols.filter((idol) => idol.series === series));
+});
 
+initializeCustomSelection();
 applyTheme(getInitialTheme());
 applyLanguage(getInitialLanguage());
 
@@ -141,6 +230,7 @@ document.querySelectorAll("input[name='series']").forEach((input) => {
     syncSeriesSelection(input);
     syncQuestionCountWithPool();
     updatePresetSelection();
+    renderCustomPanel();
     updateStartSummary();
   });
 });
@@ -196,9 +286,26 @@ questionCountInput.addEventListener("blur", () => {
 startButton.addEventListener("click", startGame);
 resetButton.addEventListener("click", resetGame);
 saveResultButton.addEventListener("click", saveResultImage);
+resultPreviewBackdrop?.addEventListener("click", closeResultPreviewModal);
+resultPreviewCloseButton?.addEventListener("click", closeResultPreviewModal);
+resultPreviewActionButton?.addEventListener("click", sharePreparedResultImage);
 wrongNoteExpandButton?.addEventListener("click", openWrongNoteModal);
 wrongNoteCloseButton?.addEventListener("click", closeWrongNoteModal);
 wrongNoteBackdrop?.addEventListener("click", closeWrongNoteModal);
+customSelectVisibleButton?.addEventListener("click", () => setCustomSelectionForVisibleIdols(true));
+customClearVisibleButton?.addEventListener("click", () => setCustomSelectionForVisibleIdols(false));
+customResetButton?.addEventListener("click", clearCustomSelection);
+customSearchInput?.addEventListener("input", () => {
+  state.customSearchQuery = customSearchInput.value;
+  scheduleCustomIdolGridRender();
+});
+customSearchClearButton?.addEventListener("click", () => {
+  state.customSearchQuery = "";
+  customSearchInput.value = "";
+  cancelScheduledCustomIdolGridRender();
+  renderCustomIdolGrid();
+  customSearchInput.focus({ preventScroll: true });
+});
 homeButton.addEventListener("click", resetGame);
 nextButton.addEventListener("click", continueAfterFeedback);
 themeToggle.addEventListener("click", () => {
@@ -207,6 +314,11 @@ themeToggle.addEventListener("click", () => {
 });
 
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && resultPreview && !resultPreview.hidden) {
+    closeResultPreviewModal();
+    return;
+  }
+
   if (event.key === "Escape" && wrongNoteModal && !wrongNoteModal.hidden) {
     closeWrongNoteModal();
   }
@@ -245,7 +357,12 @@ function getInitialLanguage() {
 
 function applyTheme(theme, shouldStore = false) {
   const normalizedTheme = theme === "dark" ? "dark" : "light";
-  document.documentElement.dataset.theme = normalizedTheme;
+  const root = document.documentElement;
+  const previousTheme = root.dataset.theme;
+  if (previousTheme && previousTheme !== normalizedTheme) {
+    suppressThemeTransitionWork();
+  }
+  root.dataset.theme = normalizedTheme;
   themeToggle.setAttribute("aria-pressed", String(normalizedTheme === "dark"));
   themeToggle.setAttribute("aria-label", normalizedTheme === "dark" ? t("themeToLight") : t("themeToDark"));
 
@@ -256,6 +373,30 @@ function applyTheme(theme, shouldStore = false) {
       // The selected theme still applies for the current page.
     }
   }
+}
+
+function suppressThemeTransitionWork() {
+  const root = document.documentElement;
+  root.classList.add("is-theme-switching");
+
+  if (themeTransitionCleanupFrame) {
+    cancelAnimationFrame(themeTransitionCleanupFrame);
+    themeTransitionCleanupFrame = 0;
+  }
+  if (themeTransitionCleanupTimer) {
+    clearTimeout(themeTransitionCleanupTimer);
+    themeTransitionCleanupTimer = 0;
+  }
+
+  themeTransitionCleanupFrame = requestAnimationFrame(() => {
+    themeTransitionCleanupFrame = requestAnimationFrame(() => {
+      themeTransitionCleanupFrame = 0;
+      themeTransitionCleanupTimer = window.setTimeout(() => {
+        themeTransitionCleanupTimer = 0;
+        root.classList.remove("is-theme-switching");
+      }, 220);
+    });
+  });
 }
 
 function applyLanguage(language, shouldStore = false) {
@@ -276,6 +417,16 @@ function applyLanguage(language, shouldStore = false) {
   setText("#mainTitle", t("heading"));
   document.querySelector(".language-toggle")?.setAttribute("aria-label", t("languageSelect"));
   setText(".series-panel legend", t("seriesSelect"));
+  setText("#customPanelTitle", t("customPanelTitle"));
+  setText("#customPanelHint", t("customPanelHint"));
+  setText(customSelectVisibleButton, t("customSelectVisible"));
+  setText(customClearVisibleButton, t("customClearVisible"));
+  setText(customResetButton, t("customReset"));
+  customSearchInput?.setAttribute("placeholder", t("customSearchPlaceholder"));
+  customSearchInput?.setAttribute("aria-label", t("customSearchPlaceholder"));
+  customSearchClearButton?.setAttribute("aria-label", t("customSearchClear"));
+  if (customSearchClearButton) customSearchClearButton.textContent = "×";
+  customSeriesFilters?.setAttribute("aria-label", t("customSeriesFilterLabel"));
   setText("#countTitle", t("questionCount"));
   setText(".number-field label", t("manualInput"));
   setText("fieldset.panel:not(.series-panel) legend", t("difficulty"));
@@ -304,13 +455,18 @@ function applyLanguage(language, shouldStore = false) {
   wrongNoteCloseButton?.setAttribute("aria-label", t("wrongNoteClose"));
   setText("#saveResultButton", t("saveResult"));
   setText("#resetButton", t("backToStart"));
-  setText("#resultPreview span", t("resultImage"));
+  setText(resultPreviewTitle, t("resultImage"));
+  resultPreviewCloseButton?.setAttribute("aria-label", t("wrongNoteClose"));
+  setText(resultPreviewActionButton, t("resultPreviewAction"));
   setText(scoreUnit, t("scoreUnit"));
   resultPreviewImage.alt = t("resultImageAlt");
   questionCountField?.querySelector("label")?.setAttribute("data-active-label", t("manualActive"));
   syncCountPresetLabels();
   syncDifficultyLabels();
   syncSeriesOptionLabels();
+  customRenderedSeriesFilter = "";
+  customRenderedSearchQuery = "";
+  renderCustomPanel();
   applyTheme(document.documentElement.dataset.theme || getInitialTheme());
   refreshLocalizedScreen();
 
@@ -395,17 +551,48 @@ function syncSeriesOptionLabels() {
     if (!label) return;
 
     const name = label.querySelector(".group-choice-main strong");
-    if (name) name.textContent = getSeriesLabel(input.value);
+    if (name) renderSeriesOptionName(name, input.value);
 
-    const count = input.value === "all"
-      ? enrichedIdols.length
-      : enrichedIdols.filter((idol) => idol.series === input.value).length;
+    const count = getSeriesOptionCount(input.value);
     const directChildren = [...label.children];
     const countElement = directChildren[directChildren.length - 1];
     if (countElement && countElement.tagName === "SPAN") {
       countElement.textContent = formatPeopleCount(count);
     }
   });
+}
+
+function renderSeriesOptionName(element, series) {
+  const chunks = getSeriesOptionNameChunks(series);
+  element.textContent = "";
+
+  if (!chunks.length) {
+    element.textContent = getSeriesLabel(series);
+    return;
+  }
+
+  chunks.forEach((chunk) => {
+    const span = document.createElement("span");
+    span.className = "series-name-chunk";
+    span.textContent = chunk;
+    element.appendChild(span);
+  });
+}
+
+function getSeriesOptionNameChunks(series) {
+  if (state.language !== "jp") return [];
+  return {
+    million: ["ミリオン", "スターズ"],
+    cinderella: ["シンデレラ", "ガールズ"],
+    shiny: ["シャイニー", "カラーズ"],
+    gakuen: ["学園", "アイドル", "マスター"]
+  }[series] || [];
+}
+
+function getSeriesOptionCount(value) {
+  if (value === "all") return enrichedIdols.length;
+  if (value === "custom") return state.customSelectedIds.size;
+  return enrichedIdols.filter((idol) => idol.series === value).length;
 }
 
 function formatPeopleCount(count) {
@@ -416,6 +603,7 @@ function formatPeopleCount(count) {
 function startGame() {
   const pool = shuffle(getPool());
   const total = normalizeQuestionCount(pool.length);
+  if (total <= 0) return;
   state.questions = pool.slice(0, total);
   state.index = 0;
   state.correct = 0;
@@ -423,6 +611,7 @@ function startGame() {
   state.wrongAnswers = [];
   state.difficulty = document.querySelector("input[name='difficulty']:checked").value;
   state.series = getSelectedSeriesValues();
+  state.resultSeries = getSeriesValuesFromIdols(state.questions);
   showScreen("quiz");
   renderQuestion();
 }
@@ -441,8 +630,7 @@ function renderQuestion() {
   feedback.className = "feedback";
   state.currentAnswerFeedback = null;
   imageFrame.classList.remove("is-shaking");
-  imageFrame.classList.remove("is-answer-glowing");
-  quizStage?.classList.remove("is-answer-glowing");
+  clearCorrectGlow();
   updateComboBadge(false);
   nextButton.hidden = true;
   nextButton.textContent = t("confirm");
@@ -605,21 +793,34 @@ function triggerCorrectFeedback(button, answerHex) {
   const stage = button.closest(".stage") || quizStage;
   if (!stage) return;
 
-  window.clearTimeout(stageGlowTimer);
-  stage.style.setProperty("--stage-answer-glow", answerHex);
-  stage.classList.remove("is-answer-glowing");
-  void stage.offsetWidth;
-  stage.classList.add("is-answer-glowing");
+  clearCorrectGlow(stage, imageFrame);
 
+  stage.style.setProperty("--stage-answer-glow", answerHex);
   imageFrame.style.setProperty("--image-answer-glow", answerHex);
-  imageFrame.classList.remove("is-answer-glowing");
+
+  void stage.offsetWidth;
   void imageFrame.offsetWidth;
-  imageFrame.classList.add("is-answer-glowing");
+
+  stage.classList.add("is-answer-glow-on");
+  imageFrame.classList.add("is-answer-glow-on");
+
+  stageGlowFadeTimer = window.setTimeout(() => {
+    stage.classList.remove("is-answer-glow-on");
+    imageFrame.classList.remove("is-answer-glow-on");
+    stage.classList.add("is-answer-glow-fading");
+    imageFrame.classList.add("is-answer-glow-fading");
+  }, 84);
 
   stageGlowTimer = window.setTimeout(() => {
-    stage.classList.remove("is-answer-glowing");
-    imageFrame.classList.remove("is-answer-glowing");
-  }, 1180);
+    clearCorrectGlow(stage, imageFrame);
+  }, 960);
+}
+
+function clearCorrectGlow(stage = quizStage, frame = imageFrame) {
+  window.clearTimeout(stageGlowTimer);
+  window.clearTimeout(stageGlowFadeTimer);
+  stage?.classList.remove("is-answer-glow-on", "is-answer-glow-fading", "is-answer-glowing");
+  frame?.classList.remove("is-answer-glow-on", "is-answer-glow-fading", "is-answer-glowing");
 }
 
 function triggerWrongFeedback() {
@@ -651,6 +852,7 @@ function setProgress(ratio) {
 
 function continueAfterFeedback() {
   if (!state.locked) return;
+  clearCorrectGlow();
   state.index += 1;
   if (state.index >= state.questions.length) {
     showResult();
@@ -660,20 +862,21 @@ function continueAfterFeedback() {
 }
 
 function showResult() {
+  clearResultPreview();
   renderResultDetails();
   showScreen("result");
 }
 
 function renderResultDetails() {
   const total = state.questions.length;
-  const percent = total ? Math.round((state.correct / total) * 100) : 0;
-  document.getElementById("scorePercent").textContent = String(percent);
+  const percent = getScorePercent(state.correct, total);
+  document.getElementById("scorePercent").textContent = formatScorePercent(percent);
   setText(scoreUnit, t("scoreUnit"));
   document.getElementById("scoreSummary").textContent = t("correctSummary", state.correct, total);
   document.getElementById("resultCorrect").textContent = t("countWithUnit", state.correct);
   document.getElementById("resultTotal").textContent = t("countWithUnit", total);
   document.getElementById("resultDifficulty").textContent = getDifficultyLabel(state.difficulty);
-  renderResultSeries(state.series);
+  renderResultSeries(state.resultSeries.length ? state.resultSeries : state.series);
   renderWrongAnswers();
   const resultMessage = document.getElementById("resultMessage");
   resultMessage.textContent = getResultMessage(percent);
@@ -794,34 +997,97 @@ async function saveResultImage() {
     const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png", 1));
     if (!blob) throw new Error(t("resultImageError"));
 
-    const fileName = `idolmaster-color-result-${new Date().toISOString().slice(0, 10)}.png`;
-    let shared = false;
-
-    if (navigator.canShare && window.File) {
-      const file = new File([blob], fileName, { type: "image/png" });
-      if (navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({
-            files: [file],
-            title: t("shareTitle"),
-            text: document.getElementById("scoreSummary").textContent
-          });
-          shared = true;
-        } catch (error) {
-          shared = false;
-        }
-      }
-    }
-
-    if (!shared) {
-      downloadBlob(blob, fileName);
-    }
+    preparedResultBlob = blob;
+    preparedResultFileName = getResultFileName();
+    resultPreviewActionButton.disabled = false;
+    openResultPreviewModal();
   } catch (error) {
     window.alert(t("resultSaveError"));
   } finally {
     saveResultButton.disabled = false;
     saveResultButton.textContent = originalText;
   }
+}
+
+async function sharePreparedResultImage() {
+  if (!preparedResultBlob) {
+    await saveResultImage();
+    return;
+  }
+
+  const originalText = resultPreviewActionButton.textContent;
+  resultPreviewActionButton.disabled = true;
+  resultPreviewActionButton.textContent = t("saving");
+
+  try {
+    await shareOrDownloadResultBlob(preparedResultBlob, preparedResultFileName || getResultFileName());
+  } catch (error) {
+    window.alert(t("resultSaveError"));
+  } finally {
+    resultPreviewActionButton.disabled = false;
+    resultPreviewActionButton.textContent = originalText;
+  }
+}
+
+async function shareOrDownloadResultBlob(blob, fileName) {
+  let shared = false;
+
+  if (navigator.canShare && window.File) {
+    const file = new File([blob], fileName, { type: "image/png" });
+    if (navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: t("shareTitle"),
+          text: document.getElementById("scoreSummary").textContent
+        });
+        shared = true;
+      } catch (error) {
+        shared = false;
+      }
+    }
+  }
+
+  if (!shared) {
+    downloadBlob(blob, fileName);
+  }
+}
+
+function getResultFileName() {
+  return `idolmaster-color-result-${new Date().toISOString().slice(0, 10)}.png`;
+}
+
+function openResultPreviewModal() {
+  if (!resultPreview) return;
+
+  window.clearTimeout(resultPreviewCloseTimer);
+  resultPreview.hidden = false;
+  document.body.classList.add("is-modal-open");
+  requestAnimationFrame(() => {
+    resultPreview.classList.add("is-open");
+    resultPreviewActionButton?.focus({ preventScroll: true });
+  });
+}
+
+function closeResultPreviewModal() {
+  if (!resultPreview || resultPreview.hidden) return;
+
+  resultPreview.classList.remove("is-open");
+  document.body.classList.remove("is-modal-open");
+  resultPreviewCloseTimer = window.setTimeout(() => {
+    resultPreview.hidden = true;
+    saveResultButton?.focus({ preventScroll: true });
+  }, 180);
+}
+
+function clearResultPreview() {
+  window.clearTimeout(resultPreviewCloseTimer);
+  preparedResultBlob = null;
+  preparedResultFileName = "";
+  resultPreview.classList.remove("is-open");
+  resultPreview.hidden = true;
+  resultPreviewImage.removeAttribute("src");
+  if (resultPreviewActionButton) resultPreviewActionButton.disabled = false;
 }
 
 async function createResultCanvas() {
@@ -831,8 +1097,9 @@ async function createResultCanvas() {
 
   const canvas = document.createElement("canvas");
   const size = 1080;
+  const canvasHeight = 1160;
   canvas.width = size;
-  canvas.height = size;
+  canvas.height = canvasHeight;
   const ctx = canvas.getContext("2d");
   const isDark = document.documentElement.dataset.theme === "dark";
   const colors = {
@@ -852,7 +1119,7 @@ async function createResultCanvas() {
   const percent = document.getElementById("scorePercent").textContent;
   const message = document.getElementById("resultMessage").textContent;
   const isPerfect = document.getElementById("resultMessage").classList.contains("is-perfect");
-  const activeSeries = getActiveSeriesValues(state.series);
+  const activeSeries = state.resultSeries.length ? state.resultSeries : getActiveSeriesValues(state.series);
   const seriesIconImages = await loadSeriesIconImages(activeSeries);
   const stats = [
     [t("correctCount"), document.getElementById("resultCorrect").textContent],
@@ -863,12 +1130,12 @@ async function createResultCanvas() {
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
   ctx.fillStyle = colors.bg;
-  ctx.fillRect(0, 0, size, size);
+  ctx.fillRect(0, 0, size, canvasHeight);
   ctx.save();
   ctx.shadowColor = colors.shadow;
   ctx.shadowBlur = 48;
   ctx.shadowOffsetY = 20;
-  drawRoundRect(ctx, 96, 96, 888, 888, 48, colors.card);
+  drawRoundRect(ctx, 96, 96, 888, 1012, 48, colors.card);
   ctx.restore();
 
   ctx.fillStyle = colors.muted;
@@ -890,7 +1157,7 @@ async function createResultCanvas() {
   ctx.fillText(document.getElementById("scoreSummary").textContent, size / 2, 548);
 
   const statsX = 140;
-  const statsY = 594;
+  const statsY = 574;
   const statsWidth = 800;
   const statsGap = 20;
   const statCardWidth = (statsWidth - statsGap * 2) / 3;
@@ -901,9 +1168,9 @@ async function createResultCanvas() {
 
   drawResultSeriesCanvas(ctx, {
     x: 140,
-    y: 724,
+    y: 704,
     width: 800,
-    height: 204,
+    height: 184,
     activeSeries,
     seriesIconImages,
     colors
@@ -913,7 +1180,9 @@ async function createResultCanvas() {
   ctx.fillStyle = colors.muted;
   ctx.font = `700 24px ${appFontStack}`;
   ctx.textBaseline = "alphabetic";
-  ctx.fillText(t("canvasFooter"), size / 2, 958);
+  ctx.fillText(t("canvasFooter"), size / 2, 990);
+  ctx.font = `700 18px ${appFontStack}`;
+  drawCanvasRepository(ctx, repositoryLabel, size / 2, 1022, colors);
   return canvas;
 }
 
@@ -951,6 +1220,35 @@ function drawCanvasStatCard(ctx, x, y, width, height, label, value, colors) {
   ctx.fillStyle = colors.text;
   ctx.font = `900 39px ${appFontStack}`;
   ctx.fillText(value, x + width / 2, y + 89);
+}
+
+function drawCanvasRepository(ctx, label, centerX, baselineY, colors) {
+  const iconSize = 20;
+  const gap = 8;
+  ctx.save();
+  ctx.font = `700 18px ${appFontStack}`;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  const textWidth = ctx.measureText(label).width;
+  const startX = centerX - (iconSize + gap + textWidth) / 2;
+  const iconY = baselineY - iconSize + 3;
+
+  ctx.fillStyle = colors.muted;
+  if (typeof Path2D !== "undefined") {
+    const iconPath = new Path2D(githubMarkPath);
+    ctx.save();
+    ctx.translate(startX, iconY);
+    ctx.scale(iconSize / 24, iconSize / 24);
+    ctx.fill(iconPath);
+    ctx.restore();
+  } else {
+    ctx.beginPath();
+    ctx.arc(startX + iconSize / 2, iconY + iconSize / 2, iconSize / 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.fillText(label, startX + iconSize + gap, baselineY);
+  ctx.restore();
 }
 
 function drawResultSeriesCanvas(ctx, options) {
@@ -1248,6 +1546,7 @@ function downloadBlob(blob, fileName) {
 
 function resetGame() {
   hideWrongNoteModalImmediately();
+  clearCorrectGlow();
   state.questions = [];
   state.index = 0;
   state.correct = 0;
@@ -1255,12 +1554,12 @@ function resetGame() {
   state.currentAnswerFeedback = null;
   state.currentCombo = 0;
   state.wrongAnswers = [];
+  state.resultSeries = [];
   updateComboBadge(false);
   nextButton.hidden = true;
   if (wrongNoteSection) wrongNoteSection.hidden = true;
   if (wrongNoteList) wrongNoteList.innerHTML = "";
-  resultPreview.hidden = true;
-  resultPreviewImage.removeAttribute("src");
+  clearResultPreview();
   showScreen("start");
   updateStartSummary();
 }
@@ -1281,21 +1580,39 @@ function resolveImagePath(idol) {
   return `assets/idols/${idol.series || inferMillionSeries(idol)}/${fileName}`;
 }
 
+function resolveFaceImagePath(idol) {
+  const fileName = IDOL_IMAGE_FILES[idol.no] || idol.image;
+  if (fileName.includes("/")) return `assets/idol-faces/${fileName}`;
+  return `assets/idol-faces/${idol.series || inferMillionSeries(idol)}/${fileName}`;
+}
+
 function createFallbackHairColor(hsl) {
   return hslToHex(hsl.h + 24, clamp(hsl.s - 18, 16, 78), clamp(hsl.l - 14, 18, 72));
 }
 
+function initializeCustomSelection() {
+  state.customSelectedIds = new Set();
+}
+
 function syncSeriesSelection(changedInput) {
   const allInput = document.querySelector("input[name='series'][value='all']");
+  const customInput = document.querySelector("input[name='series'][value='custom']");
   const individualInputs = [...document.querySelectorAll("input[name='series']")]
-    .filter((input) => input.value !== "all");
+    .filter((input) => input.value !== "all" && input.value !== "custom");
 
-  if (changedInput.value === "all" && changedInput.checked) {
+  if (changedInput.value === "custom" && changedInput.checked) {
+    allInput.checked = false;
     individualInputs.forEach((input) => {
       input.checked = false;
     });
-  } else if (changedInput.value !== "all") {
+  } else if (changedInput.value === "all" && changedInput.checked) {
+    if (customInput) customInput.checked = false;
+    individualInputs.forEach((input) => {
+      input.checked = false;
+    });
+  } else if (changedInput.value !== "all" && changedInput.value !== "custom") {
     allInput.checked = false;
+    if (customInput) customInput.checked = false;
     if (individualInputs.every((input) => input.checked)) {
       individualInputs.forEach((input) => {
         input.checked = false;
@@ -1304,7 +1621,7 @@ function syncSeriesSelection(changedInput) {
     }
   }
 
-  if (!allInput.checked && !individualInputs.some((input) => input.checked)) {
+  if (!customInput?.checked && !allInput.checked && !individualInputs.some((input) => input.checked)) {
     allInput.checked = true;
   }
 
@@ -1313,20 +1630,25 @@ function syncSeriesSelection(changedInput) {
 
 function getSelectedSeriesValues() {
   const allInput = document.querySelector("input[name='series'][value='all']");
+  const customInput = document.querySelector("input[name='series'][value='custom']");
+  if (customInput?.checked) return ["custom"];
   if (allInput?.checked) return ["all"];
   const selected = [...document.querySelectorAll("input[name='series']:checked")]
     .map((input) => input.value)
-    .filter((value) => value !== "all");
+    .filter((value) => value !== "all" && value !== "custom");
   return selected.length ? selected : ["all"];
 }
 
 function getActiveSeriesValues(values = getSelectedSeriesValues()) {
+  if (values.includes("custom")) return getSeriesValuesFromIdols(getCustomPool());
   return values.includes("all") ? seriesOrder : values;
 }
 
 function getSeriesLabelFromValues(values = getSelectedSeriesValues()) {
-  if (values.includes("all") || values.length === seriesOrder.length) return getSeriesLabel("all");
-  return values.map((value) => getSeriesLabel(value)).join(" + ");
+  const activeSeries = getActiveSeriesValues(values);
+  if (!activeSeries.length) return getSeriesLabel(values.includes("custom") ? "custom" : "all");
+  if (values.includes("all") || activeSeries.length === seriesOrder.length) return getSeriesLabel("all");
+  return activeSeries.map((value) => getSeriesLabel(value)).join(" + ");
 }
 
 function renderStartSeries(values = getSelectedSeriesValues()) {
@@ -1343,19 +1665,19 @@ function renderSeriesItems(container, values, itemClassName) {
   container.innerHTML = "";
   container.dataset.summary = getSeriesLabelFromValues(values);
 
+  if (!activeSeries.length) {
+    const empty = document.createElement("div");
+    empty.className = `${itemClassName} series-summary-item is-empty`;
+    empty.textContent = t("customEmpty");
+    container.appendChild(empty);
+    return;
+  }
+
   activeSeries.forEach((series) => {
     const item = document.createElement("div");
     item.className = `${itemClassName} series-summary-item`;
 
-    const iconBadge = document.createElement("span");
-    iconBadge.className = `series-logo-badge ${getSeriesBadgeClass(series)}`;
-
-    const icon = document.createElement("img");
-    icon.className = "series-icon-img";
-    icon.src = seriesIcons[series];
-    icon.alt = "";
-    icon.setAttribute("aria-hidden", "true");
-    iconBadge.appendChild(icon);
+    const iconBadge = createSeriesIconBadge(series);
 
     const name = document.createElement("span");
     name.className = itemClassName === "result-series-item" ? "result-series-name" : "pool-series-name";
@@ -1368,6 +1690,7 @@ function renderSeriesItems(container, values, itemClassName) {
 
 function getSeriesBadgeClass(series) {
   return {
+    all: "all",
     allstars: "allstars",
     million: "millionstars",
     cinderella: "cinderella",
@@ -1375,6 +1698,27 @@ function getSeriesBadgeClass(series) {
     gakuen: "gakuen",
     sidem: "sidem"
   }[series] || series;
+}
+
+function createSeriesIconBadge(series, className = "") {
+  const iconBadge = document.createElement("span");
+  iconBadge.className = `series-logo-badge ${getSeriesBadgeClass(series)} ${className}`.trim();
+
+  if (series === "all") {
+    const mark = document.createElement("span");
+    mark.className = "all-series-filter-mark";
+    mark.setAttribute("aria-hidden", "true");
+    iconBadge.appendChild(mark);
+    return iconBadge;
+  }
+
+  const icon = document.createElement("img");
+  icon.className = "series-icon-img";
+  icon.src = seriesIcons[series];
+  icon.alt = "";
+  icon.setAttribute("aria-hidden", "true");
+  iconBadge.appendChild(icon);
+  return iconBadge;
 }
 
 function getAttributeLabel(attribute) {
@@ -1389,7 +1733,410 @@ function getDifficultyLabel(difficulty) {
   return getDictionary().difficultyLabels?.[difficulty] || difficultyLabels[difficulty] || difficulty;
 }
 
+function getCustomPool() {
+  return enrichedIdols.filter((idol) => state.customSelectedIds.has(idol.no));
+}
+
+function getSeriesValuesFromIdols(idols) {
+  const presentSeries = new Set(idols.map((idol) => idol.series));
+  return seriesOrder.filter((series) => presentSeries.has(series));
+}
+
+function getCustomVisibleIdols(filter = getValidCustomSeriesFilter(), query = getNormalizedCustomSearchQuery()) {
+  const seriesIdols = customIdolsBySeries.get(filter) || enrichedIdols;
+  if (!query.normalized) return seriesIdols;
+  return seriesIdols.filter((idol) => doesIdolMatchCustomSearch(idol, query));
+}
+
+function renderCustomPanel() {
+  if (!customPanel || !customIdolGrid || !customSeriesFilters) return;
+
+  const isActive = getSelectedSeriesValues().includes("custom");
+  customPanel.hidden = !isActive;
+  if (!isActive) {
+    cancelScheduledCustomIdolGridRender();
+    return;
+  }
+
+  state.customSeriesFilter = getValidCustomSeriesFilter();
+  if (customSearchInput && customSearchInput.value !== state.customSearchQuery) {
+    customSearchInput.value = state.customSearchQuery;
+  }
+  renderCustomSeriesFilters();
+  updateCustomSelectedCount();
+  renderCustomIdolGrid();
+}
+
+function renderCustomSeriesFilters() {
+  if (!customFilterButtonCache.size) {
+    customSeriesFilters.innerHTML = "";
+
+    customFilterValues.forEach((series) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "custom-filter-chip";
+      button.appendChild(createSeriesIconBadge(series, "custom-filter-icon"));
+
+      button.addEventListener("click", () => {
+        if (state.customSeriesFilter === series) return;
+        state.customSeriesFilter = series;
+        cancelScheduledCustomIdolGridRender();
+        renderCustomSeriesFilters();
+        renderCustomIdolGrid();
+      });
+
+      customFilterButtonCache.set(series, button);
+      customSeriesFilters.appendChild(button);
+    });
+  } else {
+    customFilterValues.forEach((series) => {
+      const button = customFilterButtonCache.get(series);
+      if (button && button.parentElement !== customSeriesFilters) {
+        customSeriesFilters.appendChild(button);
+      }
+    });
+  }
+
+  customFilterValues.forEach((series) => {
+    const button = customFilterButtonCache.get(series);
+    if (!button) return;
+
+    const isSelected = state.customSeriesFilter === series;
+    button.classList.toggle("is-selected", isSelected);
+    button.setAttribute("aria-pressed", String(isSelected));
+    button.setAttribute("aria-label", getSeriesLabel(series));
+    button.title = getSeriesLabel(series);
+  });
+}
+
+function getValidCustomSeriesFilter() {
+  return customFilterValues.includes(state.customSeriesFilter)
+    ? state.customSeriesFilter
+    : seriesOrder[0];
+}
+
+function renderCustomIdolGrid() {
+  const filter = getValidCustomSeriesFilter();
+  const query = getNormalizedCustomSearchQuery();
+  const searchQuery = query.normalized;
+  const visibleIdols = getCustomVisibleIdols(filter, query);
+
+  if (customRenderedSeriesFilter !== filter || customRenderedSearchQuery !== searchQuery) {
+    const fragment = document.createDocumentFragment();
+    if (visibleIdols.length) {
+      visibleIdols.forEach((idol) => {
+        fragment.appendChild(getCustomIdolCard(idol));
+      });
+      customIdolGrid.classList.remove("is-empty");
+    } else {
+      const empty = document.createElement("div");
+      empty.className = "custom-empty-state";
+      empty.textContent = t("customSearchEmpty");
+      fragment.appendChild(empty);
+      customIdolGrid.classList.add("is-empty");
+    }
+    customIdolGrid.replaceChildren(fragment);
+    customIdolGrid.scrollTop = 0;
+    customRenderedSeriesFilter = filter;
+    customRenderedSearchQuery = searchQuery;
+  }
+
+  if (customSearchClearButton) customSearchClearButton.hidden = !searchQuery;
+  visibleIdols.forEach((idol) => updateCustomIdolCard(getCustomIdolCard(idol), idol));
+}
+
+function scheduleCustomIdolGridRender() {
+  if (!customPanel || customPanel.hidden) return;
+  if (customGridRenderFrame) cancelAnimationFrame(customGridRenderFrame);
+  customGridRenderFrame = requestAnimationFrame(() => {
+    customGridRenderFrame = 0;
+    renderCustomIdolGrid();
+  });
+}
+
+function cancelScheduledCustomIdolGridRender() {
+  if (!customGridRenderFrame) return;
+  cancelAnimationFrame(customGridRenderFrame);
+  customGridRenderFrame = 0;
+}
+
+function getNormalizedCustomSearchQuery() {
+  const normalized = normalizeSearchText(state.customSearchQuery);
+  return {
+    normalized,
+    compact: compactSearchText(normalized),
+    tokens: normalized.split(" ").filter(Boolean)
+  };
+}
+
+function doesIdolMatchCustomSearch(idol, query) {
+  const haystack = getCustomSearchHaystack(idol);
+  if (!query.normalized) return true;
+
+  const directHit = haystack.normalized.includes(query.normalized)
+    || haystack.compact.includes(query.compact);
+  if (directHit) return true;
+
+  return query.tokens.every((token) => (
+    haystack.normalized.includes(token)
+    || haystack.compact.includes(compactSearchText(token))
+  ));
+}
+
+function getCustomSearchHaystack(idol) {
+  if (idol.customSearchHaystack) return idol.customSearchHaystack;
+
+  const aliases = [
+    idol.name,
+    idol.jpName,
+    idol.enName,
+    idol.englishName,
+    idol.slug,
+    idol.unit,
+    idol.unitKo,
+    idol.group,
+    idol.attribute,
+    ...getIdolRomajiSearchAliases(idol)
+  ];
+  const normalized = normalizeSearchText(aliases.filter(Boolean).join(" "));
+  idol.customSearchHaystack = {
+    normalized,
+    compact: compactSearchText(normalized)
+  };
+  return idol.customSearchHaystack;
+}
+
+function getIdolRomajiSearchAliases(idol) {
+  const fileName = IDOL_IMAGE_FILES[idol.no] || idol.image || "";
+  const baseName = fileName.split("/").pop().replace(/\.[^.]+$/, "");
+  const aliases = [
+    baseName,
+    baseName.replace(/[_-]+/g, " "),
+    baseName.replace(/[_-]+/g, "")
+  ];
+
+  getRomajiSearchVariants(baseName).forEach((variant) => {
+    aliases.push(variant);
+    const hiragana = romajiToHiragana(variant);
+    if (hiragana !== variant) {
+      aliases.push(hiragana, hiraganaToKatakana(hiragana));
+    }
+  });
+
+  return aliases;
+}
+
+function getRomajiSearchVariants(value) {
+  const base = normalizeRomajiText(value);
+  if (!base) return [];
+
+  const variants = new Set([base, compactSearchText(base)]);
+  romajiVariantPairs.forEach(([left, right]) => {
+    [...variants].forEach((variant) => {
+      if (variant.includes(left)) variants.add(replaceAllText(variant, left, right));
+      if (variant.includes(right)) variants.add(replaceAllText(variant, right, left));
+    });
+  });
+  return [...variants].filter(Boolean);
+}
+
+function normalizeRomajiText(value) {
+  return String(value || "")
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLocaleLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function romajiToHiragana(value) {
+  const text = normalizeRomajiText(value);
+  let result = "";
+  let index = 0;
+
+  while (index < text.length) {
+    const char = text[index];
+    const next = text[index + 1] || "";
+
+    if (char === " ") {
+      result += " ";
+      index += 1;
+      continue;
+    }
+
+    if (!/[a-z]/.test(char)) {
+      result += char;
+      index += 1;
+      continue;
+    }
+
+    if (char === next && char !== "n" && isRomajiConsonant(char)) {
+      result += "っ";
+      index += 1;
+      continue;
+    }
+
+    if (char === "n" && shouldUseStandaloneN(text, index)) {
+      result += "ん";
+      index += next === "'" ? 2 : 1;
+      continue;
+    }
+
+    const key = romajiKanaKeys.find((candidate) => text.startsWith(candidate, index));
+    if (key) {
+      result += romajiKanaMap[key];
+      index += key.length;
+      continue;
+    }
+
+    result += char;
+    index += 1;
+  }
+
+  return result.replace(/\s+/g, " ").trim();
+}
+
+function shouldUseStandaloneN(text, index) {
+  const next = text[index + 1] || "";
+  if (!next || next === " " || next === "'") return true;
+  return !/[aiueoy]/.test(next);
+}
+
+function isRomajiConsonant(char) {
+  return /[bcdfghjklmnpqrstvwxyz]/.test(char);
+}
+
+function hiraganaToKatakana(value) {
+  return String(value || "").replace(/[\u3041-\u3096]/g, (char) => (
+    String.fromCharCode(char.charCodeAt(0) + 0x60)
+  ));
+}
+
+function normalizeSearchText(value) {
+  const folded = String(value || "")
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .normalize("NFKC")
+    .toLocaleLowerCase()
+    .replace(/[\u30a1-\u30f6]/g, (char) => (
+      String.fromCharCode(char.charCodeAt(0) - 0x60)
+    ))
+    .replace(/[\u30fc\uff70]/g, "")
+    .replace(/[_\-./=]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return folded;
+}
+
+function compactSearchText(value) {
+  return String(value || "").replace(/\s+/g, "");
+}
+
+function replaceAllText(value, search, replacement) {
+  return String(value).split(search).join(replacement);
+}
+
+function getCustomIdolCard(idol) {
+  const cacheKey = String(idol.no);
+  const cachedCard = customIdolCardCache.get(cacheKey);
+  if (cachedCard) return cachedCard;
+
+  const card = document.createElement("button");
+  card.type = "button";
+  card.className = "custom-idol-card";
+  card.dataset.no = cacheKey;
+  card.setAttribute("role", "listitem");
+
+  const avatar = document.createElement("span");
+  avatar.className = "custom-idol-avatar";
+
+  const image = document.createElement("img");
+  image.src = idol.faceImage;
+  image.alt = "";
+  image.loading = "lazy";
+  image.decoding = "async";
+  image.setAttribute("aria-hidden", "true");
+  avatar.appendChild(image);
+
+  const check = document.createElement("span");
+  check.className = "custom-idol-check";
+  check.setAttribute("aria-hidden", "true");
+  check.textContent = "✓";
+  avatar.appendChild(check);
+
+  const name = document.createElement("span");
+  name.className = "custom-idol-name";
+
+  card.append(avatar, name);
+  card.addEventListener("click", () => toggleCustomIdol(idol.no));
+  customIdolCardCache.set(cacheKey, card);
+  updateCustomIdolCard(card, idol);
+  return card;
+}
+
+function updateCustomIdolCard(card, idol) {
+  const isSelected = state.customSelectedIds.has(idol.no);
+  const displayName = getIdolDisplayName(idol);
+  card.classList.toggle("is-selected", isSelected);
+  card.setAttribute("aria-pressed", String(isSelected));
+  card.setAttribute("aria-label", displayName);
+  card.title = displayName;
+  card.querySelector(".custom-idol-name").textContent = displayName;
+}
+
+function updateVisibleCustomIdolCards() {
+  getCustomVisibleIdols().forEach((idol) => {
+    const card = customIdolCardCache.get(String(idol.no));
+    if (card) updateCustomIdolCard(card, idol);
+  });
+}
+
+function updateCustomSelectedCount() {
+  if (!customSelectedCount) return;
+  customSelectedCount.textContent = t("customSelectedCount", state.customSelectedIds.size, enrichedIdols.length);
+}
+
+function toggleCustomIdol(no) {
+  if (state.customSelectedIds.has(no)) {
+    state.customSelectedIds.delete(no);
+  } else {
+    state.customSelectedIds.add(no);
+  }
+
+  const card = customIdolCardCache.get(String(no));
+  const idol = enrichedIdolByNo.get(no);
+  if (card && idol) updateCustomIdolCard(card, idol);
+  refreshCustomSelectionState();
+}
+
+function setCustomSelectionForVisibleIdols(isSelected) {
+  getCustomVisibleIdols().forEach((idol) => {
+    if (isSelected) {
+      state.customSelectedIds.add(idol.no);
+    } else {
+      state.customSelectedIds.delete(idol.no);
+    }
+  });
+
+  refreshCustomSelectionState();
+}
+
+function clearCustomSelection() {
+  state.customSelectedIds.clear();
+  refreshCustomSelectionState();
+}
+
+function refreshCustomSelectionState() {
+  syncQuestionCountWithPool();
+  updatePresetSelection();
+  updateStartSummary();
+  updateCustomSelectedCount();
+  updateVisibleCustomIdolCards();
+}
+
 function getPool() {
+  if (getSelectedSeriesValues().includes("custom")) return getCustomPool();
   const activeSeries = getActiveSeriesValues();
   return enrichedIdols.filter((idol) => activeSeries.includes(idol.series));
 }
@@ -1402,6 +2149,8 @@ function updateStartSummary() {
   renderStartSeries();
   poolTitle.textContent = t("totalPeople", poolSize);
   poolMeta.textContent = t("poolMeta", count, getDifficultyLabel(difficulty));
+  startButton.disabled = poolSize <= 0;
+  syncSeriesOptionLabels();
 }
 
 function normalizeQuestionCount(poolSize = getPool().length) {
@@ -1414,6 +2163,7 @@ function normalizeQuestionCount(poolSize = getPool().length) {
 }
 
 function getQuestionCountValue(poolSize = getPool().length) {
+  if (poolSize <= 0) return 0;
   const rawValue = Number(questionCountInput.value);
   if (questionCountInput.value.trim() === "" || !Number.isFinite(rawValue)) return 1;
   return clamp(Math.trunc(rawValue), 1, poolSize);
@@ -1428,6 +2178,10 @@ function syncQuestionCountWithPool(poolSize = getPool().length) {
   }
 
   const requestedCount = getRequestedQuestionCount(poolSize);
+  if (poolSize <= 0) {
+    questionCountInput.value = "0";
+    return;
+  }
   questionCountInput.value = String(clamp(requestedCount, 1, poolSize));
 }
 
@@ -1863,6 +2617,15 @@ function makeFallbackBackground(hex) {
   const darker = hslToHex(h, clamp(s + 8, 15, 95), clamp(l - 18, 16, 58));
   const lighter = hslToHex(h + 18, clamp(s + 4, 18, 95), clamp(l + 12, 42, 82));
   return `linear-gradient(145deg, ${lighter}, ${hex} 48%, ${darker})`;
+}
+
+function getScorePercent(correct, total) {
+  if (!total) return 0;
+  return Math.round((correct / total) * 100);
+}
+
+function formatScorePercent(percent) {
+  return String(Math.round(percent));
 }
 
 function getResultMessage(percent) {

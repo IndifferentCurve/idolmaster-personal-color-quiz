@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+cropped_icons/
+auto_crop.py
+lbpcascade_animeface.xml
