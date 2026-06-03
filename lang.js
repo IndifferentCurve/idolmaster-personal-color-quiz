@@ -242,7 +242,18 @@ const localizedSeriesLabels = {
   }
 };
 const localizedAttributeLabels = {
-  ko: baseAttributeLabels,
+  ko: {
+    ...baseAttributeLabels,
+    Princess: "프린세스",
+    Fairy: "페어리",
+    Angel: "엔젤",
+    Cute: "큐트",
+    Cool: "쿨",
+    Passion: "패션",
+    Physical: "피지컬",
+    Mental: "멘탈",
+    Intelli: "인텔리"
+  },
   jp: {
     Princess: "プリンセス",
     Fairy: "フェアリー",

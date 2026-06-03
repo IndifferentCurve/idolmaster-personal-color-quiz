@@ -85,6 +85,24 @@ const languageStorageKey = "idolmasterColorQuizLanguage";
 const appFontStack = "Pretendard, 'Noto Sans KR', Inter, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
 let wrongNoteModalCloseTimer = 0;
 let stageGlowTimer = 0;
+const sidemJapaneseUnitLabels = Object.freeze({
+  Jupiter: "Jupiter",
+  "DRAMATIC STARS": "DRAMATIC STARS",
+  Altessimo: "Altessimo",
+  Beit: "Beit",
+  W: "W",
+  FRAME: "FRAME",
+  Sai: "彩",
+  "High×Joker": "High×Joker",
+  "Shinsoku Ikkon": "神速一魂",
+  "Café Parade": "Café Parade",
+  Mofumofuen: "もふもふえん",
+  "S.E.M": "S.E.M",
+  "THE Kogado": "THE 虎牙道",
+  "F-LAGS": "F-LAGS",
+  Legenders: "Legenders",
+  "C.FIRST": "C.FIRST"
+});
 const languageMeta = {
   ko: { htmlLang: "ko" },
   jp: { htmlLang: "ja" },
@@ -436,7 +454,24 @@ function renderQuestion() {
 
 function renderQuestionText(question) {
   characterName.textContent = getIdolDisplayName(question);
-  characterMeta.textContent = `${getIdolMetaName(question)} · ${getAttributeLabel(question.attribute)}`;
+  characterMeta.textContent = getQuestionMetaText(question);
+}
+
+function getQuestionMetaText(idol) {
+  const parts = [getIdolMetaName(idol)];
+
+  if (idol.series === "sidem") {
+    parts.push(getIdolUnitName(idol));
+  }
+
+  parts.push(getAttributeLabel(idol.attribute));
+  return parts.filter(Boolean).join(" · ");
+}
+
+function getIdolUnitName(idol) {
+  if (state.language === "ko") return idol.unitKo || idol.unit;
+  if (state.language === "jp") return sidemJapaneseUnitLabels[idol.unit] || idol.unit || idol.unitKo;
+  return idol.unit || idol.unitKo;
 }
 
 function renderChoices(question) {
