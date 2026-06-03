@@ -27,7 +27,7 @@ const state = {
   series: ["all"],
   countMode: "preset",
   requestedQuestionCount: 5,
-  language: "kr",
+  language: "ko",
   currentAnswerFeedback: null,
   currentCombo: 0,
   wrongAnswers: [],
@@ -86,300 +86,14 @@ const appFontStack = "Pretendard, 'Noto Sans KR', Inter, 'Segoe UI', 'Apple SD G
 let wrongNoteModalCloseTimer = 0;
 let stageGlowTimer = 0;
 const languageMeta = {
-  kr: { htmlLang: "ko" },
+  ko: { htmlLang: "ko" },
   jp: { htmlLang: "ja" },
   en: { htmlLang: "en" }
 };
-const translations = {
-  kr: {
-    documentTitle: "아이돌마스터 이미지 컬러 맞추기",
-    brandTitle: "THE IDOLM@STER",
-    heading: "이미지 컬러 맞추기",
-    themeToDark: "다크모드로 전환",
-    themeToLight: "라이트모드로 전환",
-    seriesSelect: "시리즈 선택",
-    peopleSuffix: "명",
-    questionCount: "문항 수",
-    countPreset5: "5개",
-    countPreset10: "10개",
-    countPresetAll: "전체",
-    manualInput: "직접 입력",
-    manualActive: "적용 중",
-    difficulty: "난이도",
-    selectedSeries: "선택한 시리즈",
-    totalPeople: (count) => `총 ${count}명`,
-    poolMeta: (count, difficulty) => `${count}문항 · ${difficulty}`,
-    start: "게임 시작",
-    previous: "❮ 이전",
-    backHomeLabel: "메인 화면으로 돌아가기",
-    question: "문항",
-    correct: "정답",
-    confirm: "확인",
-    viewResult: "결과 보기",
-    result: "완료",
-    scoreUnit: "점",
-    correctSummary: (correct, total) => `${correct} / ${total} 정답`,
-    countWithUnit: (count) => `${count}개`,
-    record: "기록",
-    correctCount: "맞춘 개수",
-    totalQuestions: "문항 수",
-    resultDifficulty: "난이도",
-    series: "시리즈",
-    comboText: (combo) => `${combo} Combo`,
-    wrongNoteTitle: "오답 노트",
-    wrongNoteExpand: "⛶ 전체 보기",
-    wrongNoteClose: "닫기",
-    wrongSelected: "내 선택",
-    wrongAnswer: "정답",
-    saveResult: "결과 저장",
-    saving: "저장 중",
-    backToStart: "처음으로 돌아가기",
-    resultImage: "결과 이미지",
-    resultImageAlt: "퀴즈 결과 이미지",
-    resultImageError: "결과 이미지를 만들 수 없습니다.",
-    resultSaveError: "결과 이미지를 저장하지 못했습니다.",
-    shareTitle: "아이돌마스터 이미지 컬러 맞추기 결과",
-    swatchLabel: (index) => `${index}번 색상`,
-    illustrationAlt: (name) => `${name} 일러스트`,
-    answerCorrect: "정답",
-    answerWrong: "오답",
-    answerSelected: "선택",
-    answerAnswer: "정답",
-    sourceNote: "자료 출처",
-    sourceTitle: "출처",
-    hexSource: "HEX",
-    imageSource: "이미지",
-    canvasFooter: "Image Color Quiz",
-    resultMessages: {
-      perfect: "당신이 아이돌마스터",
-      great: "@틀딱",
-      good: "@청년",
-      fair: "@민이",
-      low: "놀안분?",
-      zero: "ㅁㅎ?"
-    }
-  },
-  jp: {
-    documentTitle: "アイドルマスター イメージカラークイズ",
-    brandTitle: "THE IDOLM@STER",
-    heading: "イメージカラークイズ",
-    themeToDark: "ダークモードに切り替え",
-    themeToLight: "ライトモードに切り替え",
-    seriesSelect: "シリーズ選択",
-    peopleSuffix: "人",
-    questionCount: "出題数",
-    countPreset5: "5問",
-    countPreset10: "10問",
-    countPresetAll: "全員",
-    manualInput: "直接入力",
-    manualActive: "適用中",
-    difficulty: "難易度",
-    selectedSeries: "選択中のシリーズ",
-    totalPeople: (count) => `全${count}人`,
-    poolMeta: (count, difficulty) => `${count}問 · ${difficulty}`,
-    start: "ゲーム開始",
-    previous: "❮ 戻る",
-    backHomeLabel: "メイン画面に戻る",
-    question: "問題",
-    correct: "正解",
-    confirm: "確認",
-    viewResult: "結果を見る",
-    result: "完了",
-    scoreUnit: "点",
-    correctSummary: (correct, total) => `${correct} / ${total} 正解`,
-    countWithUnit: (count) => `${count}問`,
-    record: "記録",
-    correctCount: "正解数",
-    totalQuestions: "出題数",
-    resultDifficulty: "難易度",
-    series: "シリーズ",
-    comboText: (combo) => `${combo} Combo`,
-    wrongNoteTitle: "ミスノート",
-    wrongNoteExpand: "⛶ 全体表示",
-    wrongNoteClose: "閉じる",
-    wrongSelected: "選択",
-    wrongAnswer: "正解",
-    saveResult: "結果保存",
-    saving: "保存中",
-    backToStart: "最初に戻る",
-    resultImage: "結果画像",
-    resultImageAlt: "クイズ結果画像",
-    resultImageError: "結果画像を作成できません。",
-    resultSaveError: "結果画像を保存できませんでした。",
-    shareTitle: "アイドルマスター イメージカラークイズ 結果",
-    swatchLabel: (index) => `${index}番の色`,
-    illustrationAlt: (name) => `${name} イラスト`,
-    answerCorrect: "正解",
-    answerWrong: "不正解",
-    answerSelected: "選択",
-    answerAnswer: "正解",
-    sourceNote: "出典",
-    sourceTitle: "出典",
-    hexSource: "HEX",
-    imageSource: "画像",
-    canvasFooter: "Image Color Quiz",
-    resultMessages: {
-      perfect: "あなたがアイドルマスター",
-      great: "@古参",
-      good: "@青年",
-      fair: "@民",
-      low: "にわか?",
-      zero: "むり"
-    }
-  },
-  en: {
-    documentTitle: "THE IDOLM@STER Image Color Match",
-    brandTitle: "THE IDOLM@STER",
-    heading: "Image Color Match",
-    themeToDark: "Switch to dark mode",
-    themeToLight: "Switch to light mode",
-    seriesSelect: "Series",
-    peopleSuffix: "",
-    questionCount: "Questions",
-    countPreset5: "5",
-    countPreset10: "10",
-    countPresetAll: "All",
-    manualInput: "Custom",
-    manualActive: "Active",
-    difficulty: "Difficulty",
-    selectedSeries: "Selected Series",
-    totalPeople: (count) => `${count} idols`,
-    poolMeta: (count, difficulty) => `${count} questions · ${difficulty}`,
-    start: "Start Game",
-    previous: "❮ Back",
-    backHomeLabel: "Back to main screen",
-    question: "Question",
-    correct: "Correct",
-    confirm: "Confirm",
-    viewResult: "View Result",
-    result: "Complete",
-    scoreUnit: "pts",
-    correctSummary: (correct, total) => `${correct} / ${total} correct`,
-    countWithUnit: (count) => `${count}`,
-    record: "Record",
-    correctCount: "Correct",
-    totalQuestions: "Questions",
-    resultDifficulty: "Difficulty",
-    series: "Series",
-    comboText: (combo) => `${combo} Combo`,
-    wrongNoteTitle: "Missed Colors",
-    wrongNoteExpand: "⛶ View All",
-    wrongNoteClose: "Close",
-    wrongSelected: "Picked",
-    wrongAnswer: "Answer",
-    saveResult: "Save Result",
-    saving: "Saving",
-    backToStart: "Back to Start",
-    resultImage: "Result Image",
-    resultImageAlt: "Quiz result image",
-    resultImageError: "Could not create the result image.",
-    resultSaveError: "Could not save the result image.",
-    shareTitle: "THE IDOLM@STER Image Color Match Result",
-    swatchLabel: (index) => `Color ${index}`,
-    illustrationAlt: (name) => `${name} illustration`,
-    answerCorrect: "Correct",
-    answerWrong: "Wrong",
-    answerSelected: "Selected",
-    answerAnswer: "Answer",
-    sourceNote: "Sources",
-    sourceTitle: "Sources",
-    hexSource: "HEX",
-    imageSource: "Images",
-    canvasFooter: "Image Color Quiz",
-    resultMessages: {
-      perfect: "You are THE IDOLM@STER",
-      great: "@Old Guard",
-      good: "@Regular",
-      fair: "@Rookie",
-      low: "Tourist?",
-      zero: "Nope"
-    }
-  }
-};
-const localizedSeriesLabels = {
-  kr: seriesLabels,
-  jp: {
-    allstars: "765PRO ALLSTARS",
-    million: "ミリオンスターズ",
-    cinderella: "シンデレラガールズ",
-    shiny: "シャイニーカラーズ",
-    gakuen: "学園アイドルマスター",
-    sidem: "SideM",
-    all: "すべて"
-  },
-  en: {
-    allstars: "765PRO ALLSTARS",
-    million: "Million Stars",
-    cinderella: "Cinderella Girls",
-    shiny: "Shiny Colors",
-    gakuen: "Gakuen Idolmaster",
-    sidem: "SideM",
-    all: "All"
-  }
-};
-const localizedAttributeLabels = {
-  kr: attributeLabels,
-  jp: {
-    Princess: "プリンセス",
-    Fairy: "フェアリー",
-    Angel: "エンジェル",
-    Cute: "キュート",
-    Cool: "クール",
-    Passion: "パッション",
-    Physical: "フィジカル",
-    Mental: "メンタル",
-    Intelli: "インテリ",
-    "illumination STARS": "イルミネーションスターズ",
-    "L’Antica": "アンティーカ",
-    "Houkago Climax Girls": "放課後クライマックスガールズ",
-    ALSTROEMERIA: "アルストロメリア",
-    Straylight: "ストレイライト",
-    noctchill: "ノクチル",
-    SHHis: "シーズ",
-    CoMETIK: "コメティック",
-    "HATSUBOSHI GAKUEN": "初星学園"
-  },
-  en: {
-    Princess: "Princess",
-    Fairy: "Fairy",
-    Angel: "Angel",
-    Cute: "Cute",
-    Cool: "Cool",
-    Passion: "Passion",
-    Physical: "Physical",
-    Mental: "Mental",
-    Intelli: "Intelli",
-    "illumination STARS": "illumination STARS",
-    "L’Antica": "L’Antica",
-    "Houkago Climax Girls": "Houkago Climax Girls",
-    ALSTROEMERIA: "ALSTROEMERIA",
-    Straylight: "Straylight",
-    noctchill: "noctchill",
-    SHHis: "SHHis",
-    CoMETIK: "CoMETIK",
-    "HATSUBOSHI GAKUEN": "Hatsuboshi Gakuen"
-  }
-};
-const localizedDifficultyLabels = {
-  kr: difficultyLabels,
-  jp: {
-    easy: "Easy",
-    normal: "Normal",
-    hard: "Hard",
-    "very-hard": "Very Hard"
-  },
-  en: {
-    easy: "Easy",
-    normal: "Normal",
-    hard: "Hard",
-    "very-hard": "Very Hard"
-  }
-};
-const languageNames = {
-  kr: { kr: "한국어", jp: "일본어", en: "영어" },
-  jp: { kr: "韓国語", jp: "日本語", en: "英語" },
-  en: { kr: "Korean", jp: "Japanese", en: "English" }
-};
+const translations = window.translations;
+if (!translations) {
+  throw new Error("lang.js must be loaded before script.js");
+}
 
 const enrichedIdols = ALL_IDOLS.map((idol) => {
   const series = idol.series || inferMillionSeries(idol);
@@ -496,7 +210,11 @@ function getInitialTheme() {
 function getInitialLanguage() {
   try {
     const storedLanguage = window.localStorage?.getItem(languageStorageKey);
-    if (storedLanguage === "kr" || storedLanguage === "jp" || storedLanguage === "en") return storedLanguage;
+    if (storedLanguage === "kr") {
+      window.localStorage?.setItem(languageStorageKey, "ko");
+      return "ko";
+    }
+    if (storedLanguage === "ko" || storedLanguage === "jp" || storedLanguage === "en") return storedLanguage;
   } catch (error) {
     // Local storage can be unavailable in restricted browser contexts.
   }
@@ -504,7 +222,7 @@ function getInitialLanguage() {
   const browserLanguage = navigator.language?.toLowerCase() || "";
   if (browserLanguage.startsWith("ja")) return "jp";
   if (browserLanguage.startsWith("en")) return "en";
-  return "kr";
+  return "ko";
 }
 
 function applyTheme(theme, shouldStore = false) {
@@ -523,25 +241,28 @@ function applyTheme(theme, shouldStore = false) {
 }
 
 function applyLanguage(language, shouldStore = false) {
-  const normalizedLanguage = translations[language] ? language : "kr";
+  const normalizedLanguage = normalizeLanguage(language);
   state.language = normalizedLanguage;
   document.documentElement.lang = languageMeta[normalizedLanguage].htmlLang;
   document.title = t("documentTitle");
+  const languageLabels = getDictionary(normalizedLanguage).languageNames || {};
 
   languageButtons.forEach((button) => {
     const isSelected = button.dataset.language === normalizedLanguage;
     button.classList.toggle("is-selected", isSelected);
     button.setAttribute("aria-pressed", String(isSelected));
-    button.setAttribute("aria-label", languageNames[normalizedLanguage][button.dataset.language]);
+    button.setAttribute("aria-label", languageLabels[normalizeLanguage(button.dataset.language)] || button.dataset.language);
   });
 
   setText("#brandTitle", t("brandTitle"));
   setText("#mainTitle", t("heading"));
+  document.querySelector(".language-toggle")?.setAttribute("aria-label", t("languageSelect"));
   setText(".series-panel legend", t("seriesSelect"));
   setText("#countTitle", t("questionCount"));
   setText(".number-field label", t("manualInput"));
   setText("fieldset.panel:not(.series-panel) legend", t("difficulty"));
   setText(".pool-kicker", t("selectedSeries"));
+  poolSeriesList?.setAttribute("aria-label", t("selectedSeries"));
   setText("#startButton", t("start"));
   setText("#sourceNoteTitle", t("sourceTitle"));
   setText("#hexSourceLabel", t("hexSource"));
@@ -551,13 +272,14 @@ function applyLanguage(language, shouldStore = false) {
   homeButton.setAttribute("aria-label", t("backHomeLabel"));
   setText("#quizScreen .stat:first-child span", t("question"));
   setText("#quizScreen .stat:nth-child(2) span", t("correct"));
-  setText(".result-main .eyebrow", "RESULT");
+  setText(".result-main .eyebrow", t("resultEyebrow"));
   setText("#resultMessage", t("result"));
   setText(".result-side .panel-title", t("record"));
   setText(".result-stat:nth-child(1) > span", t("correctCount"));
   setText(".result-stat:nth-child(2) > span", t("totalQuestions"));
   setText(".result-stat:nth-child(3) > span", t("resultDifficulty"));
   setText(".result-stat-series > span", t("series"));
+  document.getElementById("resultGroup")?.setAttribute("aria-label", t("series"));
   setText(wrongNoteTitle, t("wrongNoteTitle"));
   setText(wrongNoteModalTitle, t("wrongNoteTitle"));
   setText(wrongNoteExpandButton, t("wrongNoteExpand"));
@@ -619,9 +341,18 @@ function setText(selectorOrElement, text) {
   if (element) element.textContent = text;
 }
 
+function normalizeLanguage(language) {
+  const normalized = language === "kr" ? "ko" : language;
+  return translations[normalized] ? normalized : "ko";
+}
+
+function getDictionary(language = state.language) {
+  return translations[normalizeLanguage(language)] || translations.ko;
+}
+
 function t(key, ...args) {
-  const dictionary = translations[state.language] || translations.kr;
-  const value = dictionary[key] ?? translations.kr[key] ?? key;
+  const dictionary = getDictionary();
+  const value = dictionary[key] ?? translations.ko[key] ?? key;
   return typeof value === "function" ? value(...args) : value;
 }
 
@@ -1612,15 +1343,15 @@ function getSeriesBadgeClass(series) {
 }
 
 function getAttributeLabel(attribute) {
-  return localizedAttributeLabels[state.language]?.[attribute] || attributeLabels[attribute] || attribute;
+  return getDictionary().attributeLabels?.[attribute] || attributeLabels[attribute] || attribute;
 }
 
 function getSeriesLabel(series) {
-  return localizedSeriesLabels[state.language]?.[series] || seriesLabels[series] || series;
+  return getDictionary().seriesLabels?.[series] || seriesLabels[series] || series;
 }
 
 function getDifficultyLabel(difficulty) {
-  return localizedDifficultyLabels[state.language]?.[difficulty] || difficultyLabels[difficulty] || difficulty;
+  return getDictionary().difficultyLabels?.[difficulty] || difficultyLabels[difficulty] || difficulty;
 }
 
 function getPool() {
@@ -2084,7 +1815,7 @@ function makeFallbackBackground(hex) {
 }
 
 function getResultMessage(percent) {
-  const messages = (translations[state.language] || translations.kr).resultMessages;
+  const messages = getDictionary().resultMessages;
   if (percent === 100) return messages.perfect;
   if (percent >= 80) return messages.great;
   if (percent >= 60) return messages.good;

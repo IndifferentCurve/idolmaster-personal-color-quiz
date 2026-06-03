@@ -1,0 +1,315 @@
+"use strict";
+
+/*
+  lang.js
+  Centralized UI language dictionaries for the quiz.
+  data.js is loaded first so Korean base labels can reuse canonical data labels.
+*/
+const quizLanguageData = window.IdolmasterQuizData || {};
+const baseSeriesLabels = quizLanguageData.seriesLabels || {};
+const baseAttributeLabels = quizLanguageData.attributeLabels || {};
+const baseDifficultyLabels = quizLanguageData.difficultyLabels || {};
+
+window.translations = {
+  ko: {
+    documentTitle: "아이돌마스터 이미지 컬러 맞추기",
+    brandTitle: "THE IDOLM@STER",
+    heading: "이미지 컬러 맞추기",
+    languageSelect: "언어 선택",
+    themeToDark: "다크모드로 전환",
+    themeToLight: "라이트모드로 전환",
+    seriesSelect: "시리즈 선택",
+    peopleSuffix: "명",
+    questionCount: "문항 수",
+    countPreset5: "5개",
+    countPreset10: "10개",
+    countPresetAll: "전체",
+    manualInput: "직접 입력",
+    manualActive: "적용 중",
+    difficulty: "난이도",
+    selectedSeries: "선택한 시리즈",
+    totalPeople: (count) => `총 ${count}명`,
+    poolMeta: (count, difficulty) => `${count}문항 · ${difficulty}`,
+    start: "게임 시작",
+    previous: "❮ 이전",
+    backHomeLabel: "메인 화면으로 돌아가기",
+    question: "문항",
+    correct: "정답",
+    confirm: "확인",
+    viewResult: "결과 보기",
+    result: "완료",
+    scoreUnit: "점",
+    correctSummary: (correct, total) => `${correct} / ${total} 정답`,
+    countWithUnit: (count) => `${count}개`,
+    record: "기록",
+    correctCount: "맞춘 개수",
+    totalQuestions: "문항 수",
+    resultDifficulty: "난이도",
+    series: "시리즈",
+    comboText: (combo) => `${combo} Combo`,
+    wrongNoteTitle: "오답 노트",
+    wrongNoteExpand: "⛶ 전체 보기",
+    wrongNoteClose: "닫기",
+    wrongSelected: "내 선택",
+    wrongAnswer: "정답",
+    saveResult: "결과 저장",
+    saving: "저장 중",
+    backToStart: "처음으로 돌아가기",
+    resultImage: "결과 이미지",
+    resultImageAlt: "퀴즈 결과 이미지",
+    resultImageError: "결과 이미지를 만들 수 없습니다.",
+    resultSaveError: "결과 이미지를 저장하지 못했습니다.",
+    shareTitle: "아이돌마스터 이미지 컬러 맞추기 결과",
+    swatchLabel: (index) => `${index}번 색상`,
+    illustrationAlt: (name) => `${name} 일러스트`,
+    answerCorrect: "정답",
+    answerWrong: "오답",
+    answerSelected: "선택",
+    answerAnswer: "정답",
+    sourceNote: "자료 출처",
+    sourceTitle: "출처",
+    hexSource: "HEX",
+    imageSource: "이미지",
+    canvasFooter: "Image Color Quiz",
+    resultMessages: {
+      perfect: "당신이 아이돌마스터",
+      great: "@틀딱",
+      good: "@청년",
+      fair: "@민이",
+      low: "놀안분?",
+      zero: "ㅁㅎ?"
+    }
+  },
+  jp: {
+    documentTitle: "アイドルマスター イメージカラークイズ",
+    brandTitle: "THE IDOLM@STER",
+    heading: "イメージカラークイズ",
+    languageSelect: "言語選択",
+    themeToDark: "ダークモードに切り替え",
+    themeToLight: "ライトモードに切り替え",
+    seriesSelect: "シリーズ選択",
+    peopleSuffix: "人",
+    questionCount: "出題数",
+    countPreset5: "5問",
+    countPreset10: "10問",
+    countPresetAll: "全員",
+    manualInput: "直接入力",
+    manualActive: "適用中",
+    difficulty: "難易度",
+    selectedSeries: "選択中のシリーズ",
+    totalPeople: (count) => `全${count}人`,
+    poolMeta: (count, difficulty) => `${count}問 · ${difficulty}`,
+    start: "ゲーム開始",
+    previous: "❮ 戻る",
+    backHomeLabel: "メイン画面に戻る",
+    question: "問題",
+    correct: "正解",
+    confirm: "確認",
+    viewResult: "結果を見る",
+    result: "完了",
+    scoreUnit: "点",
+    correctSummary: (correct, total) => `${correct} / ${total} 正解`,
+    countWithUnit: (count) => `${count}問`,
+    record: "記録",
+    correctCount: "正解数",
+    totalQuestions: "出題数",
+    resultDifficulty: "難易度",
+    series: "シリーズ",
+    comboText: (combo) => `${combo} Combo`,
+    wrongNoteTitle: "ミスノート",
+    wrongNoteExpand: "⛶ 全体表示",
+    wrongNoteClose: "閉じる",
+    wrongSelected: "選択",
+    wrongAnswer: "正解",
+    saveResult: "結果保存",
+    saving: "保存中",
+    backToStart: "最初に戻る",
+    resultImage: "結果画像",
+    resultImageAlt: "クイズ結果画像",
+    resultImageError: "結果画像を作成できません。",
+    resultSaveError: "結果画像を保存できませんでした。",
+    shareTitle: "アイドルマスター イメージカラークイズ 結果",
+    swatchLabel: (index) => `${index}番の色`,
+    illustrationAlt: (name) => `${name} イラスト`,
+    answerCorrect: "正解",
+    answerWrong: "不正解",
+    answerSelected: "選択",
+    answerAnswer: "正解",
+    sourceNote: "出典",
+    sourceTitle: "出典",
+    hexSource: "HEX",
+    imageSource: "画像",
+    canvasFooter: "Image Color Quiz",
+    resultMessages: {
+      perfect: "あなたがアイドルマスター",
+      great: "@古参",
+      good: "@青年",
+      fair: "@民",
+      low: "にわか?",
+      zero: "むり"
+    }
+  },
+  en: {
+    documentTitle: "THE IDOLM@STER Image Color Match",
+    brandTitle: "THE IDOLM@STER",
+    heading: "Image Color Match",
+    languageSelect: "Language",
+    themeToDark: "Switch to dark mode",
+    themeToLight: "Switch to light mode",
+    seriesSelect: "Series",
+    peopleSuffix: "",
+    questionCount: "Questions",
+    countPreset5: "5",
+    countPreset10: "10",
+    countPresetAll: "All",
+    manualInput: "Custom",
+    manualActive: "Active",
+    difficulty: "Difficulty",
+    selectedSeries: "Selected Series",
+    totalPeople: (count) => `${count} idols`,
+    poolMeta: (count, difficulty) => `${count} questions · ${difficulty}`,
+    start: "Start Game",
+    previous: "❮ Back",
+    backHomeLabel: "Back to main screen",
+    question: "Question",
+    correct: "Correct",
+    confirm: "Confirm",
+    viewResult: "View Result",
+    result: "Complete",
+    scoreUnit: "pts",
+    correctSummary: (correct, total) => `${correct} / ${total} correct`,
+    countWithUnit: (count) => `${count}`,
+    record: "Record",
+    correctCount: "Correct",
+    totalQuestions: "Questions",
+    resultDifficulty: "Difficulty",
+    series: "Series",
+    comboText: (combo) => `${combo} Combo`,
+    wrongNoteTitle: "Missed Colors",
+    wrongNoteExpand: "⛶ View All",
+    wrongNoteClose: "Close",
+    wrongSelected: "Picked",
+    wrongAnswer: "Answer",
+    saveResult: "Save Result",
+    saving: "Saving",
+    backToStart: "Back to Start",
+    resultImage: "Result Image",
+    resultImageAlt: "Quiz result image",
+    resultImageError: "Could not create the result image.",
+    resultSaveError: "Could not save the result image.",
+    shareTitle: "THE IDOLM@STER Image Color Match Result",
+    swatchLabel: (index) => `Color ${index}`,
+    illustrationAlt: (name) => `${name} illustration`,
+    answerCorrect: "Correct",
+    answerWrong: "Wrong",
+    answerSelected: "Selected",
+    answerAnswer: "Answer",
+    sourceNote: "Sources",
+    sourceTitle: "Sources",
+    hexSource: "HEX",
+    imageSource: "Images",
+    canvasFooter: "Image Color Quiz",
+    resultMessages: {
+      perfect: "You are THE IDOLM@STER",
+      great: "@Old Guard",
+      good: "@Regular",
+      fair: "@Rookie",
+      low: "Tourist?",
+      zero: "Nope"
+    }
+  }
+};
+
+const localizedSeriesLabels = {
+  ko: baseSeriesLabels,
+  jp: {
+    allstars: "765PRO ALLSTARS",
+    million: "ミリオンスターズ",
+    cinderella: "シンデレラガールズ",
+    shiny: "シャイニーカラーズ",
+    gakuen: "学園アイドルマスター",
+    sidem: "SideM",
+    all: "すべて"
+  },
+  en: {
+    allstars: "765PRO ALLSTARS",
+    million: "Million Stars",
+    cinderella: "Cinderella Girls",
+    shiny: "Shiny Colors",
+    gakuen: "Gakuen Idolmaster",
+    sidem: "SideM",
+    all: "All"
+  }
+};
+const localizedAttributeLabels = {
+  ko: baseAttributeLabels,
+  jp: {
+    Princess: "プリンセス",
+    Fairy: "フェアリー",
+    Angel: "エンジェル",
+    Cute: "キュート",
+    Cool: "クール",
+    Passion: "パッション",
+    Physical: "フィジカル",
+    Mental: "メンタル",
+    Intelli: "インテリ",
+    "illumination STARS": "イルミネーションスターズ",
+    "L’Antica": "アンティーカ",
+    "Houkago Climax Girls": "放課後クライマックスガールズ",
+    ALSTROEMERIA: "アルストロメリア",
+    Straylight: "ストレイライト",
+    noctchill: "ノクチル",
+    SHHis: "シーズ",
+    CoMETIK: "コメティック",
+    "HATSUBOSHI GAKUEN": "初星学園"
+  },
+  en: {
+    Princess: "Princess",
+    Fairy: "Fairy",
+    Angel: "Angel",
+    Cute: "Cute",
+    Cool: "Cool",
+    Passion: "Passion",
+    Physical: "Physical",
+    Mental: "Mental",
+    Intelli: "Intelli",
+    "illumination STARS": "illumination STARS",
+    "L’Antica": "L’Antica",
+    "Houkago Climax Girls": "Houkago Climax Girls",
+    ALSTROEMERIA: "ALSTROEMERIA",
+    Straylight: "Straylight",
+    noctchill: "noctchill",
+    SHHis: "SHHis",
+    CoMETIK: "CoMETIK",
+    "HATSUBOSHI GAKUEN": "Hatsuboshi Gakuen"
+  }
+};
+const localizedDifficultyLabels = {
+  ko: baseDifficultyLabels,
+  jp: {
+    easy: "Easy",
+    normal: "Normal",
+    hard: "Hard",
+    "very-hard": "Very Hard"
+  },
+  en: {
+    easy: "Easy",
+    normal: "Normal",
+    hard: "Hard",
+    "very-hard": "Very Hard"
+  }
+};
+
+window.translations.ko.languageNames = { ko: "???", jp: "???", en: "??" };
+window.translations.jp.languageNames = { ko: "???", jp: "???", en: "??" };
+window.translations.en.languageNames = { ko: "Korean", jp: "Japanese", en: "English" };
+
+window.translations.ko.resultEyebrow = "RESULT";
+window.translations.jp.resultEyebrow = "RESULT";
+window.translations.en.resultEyebrow = "RESULT";
+
+Object.keys(window.translations).forEach((language) => {
+  window.translations[language].seriesLabels = localizedSeriesLabels[language] || baseSeriesLabels;
+  window.translations[language].attributeLabels = localizedAttributeLabels[language] || baseAttributeLabels;
+  window.translations[language].difficultyLabels = localizedDifficultyLabels[language] || baseDifficultyLabels;
+});
