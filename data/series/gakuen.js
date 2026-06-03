@@ -10,7 +10,7 @@
     { no: 2002, series: "gakuen", attribute: "HATSUBOSHI GAKUEN", group: "GAKUEN IDOLM@STER", jpName: "月村 手毬", name: "츠키무라 테마리", hex: "#0c7bbb", image: "gakuen/Temari_Tsukimura.webp" },
     { no: 2003, series: "gakuen", attribute: "HATSUBOSHI GAKUEN", group: "GAKUEN IDOLM@STER", jpName: "藤田 ことね", name: "후지타 코토네", hex: "#f8c112", image: "gakuen/Kotone_Fujita.webp" },
     { no: 2004, series: "gakuen", attribute: "HATSUBOSHI GAKUEN", group: "GAKUEN IDOLM@STER", jpName: "有村 麻央", name: "아리무라 마오", hex: "#7f1184", image: "gakuen/Mao_Arimura.webp" },
-    { no: 2005, series: "gakuen", attribute: "HATSUBOSHI GAKUEN", group: "GAKUEN IDOLM@STER", jpName: "葛城 リーリヤ", name: "카츠라기 리리야", hex: "#eafdff", image: "gakuen/Lilja_Katsuragi.webp" },
+    { no: 2005, series: "gakuen", attribute: "HATSUBOSHI GAKUEN", group: "GAKUEN IDOLM@STER", jpName: "葛城 リーリヤ", name: "카츠라기 릴리야", hex: "#eafdff", image: "gakuen/Lilja_Katsuragi.webp" },
     { no: 2006, series: "gakuen", attribute: "HATSUBOSHI GAKUEN", group: "GAKUEN IDOLM@STER", jpName: "倉本 千奈", name: "쿠라모토 치나", hex: "#f68b1f", image: "gakuen/China_Kuramoto.webp" },
     { no: 2007, series: "gakuen", attribute: "HATSUBOSHI GAKUEN", group: "GAKUEN IDOLM@STER", jpName: "紫雲 清夏", name: "시운 스미카", hex: "#7cfc00", image: "gakuen/Sumika_Shiun.webp" },
     { no: 2008, series: "gakuen", attribute: "HATSUBOSHI GAKUEN", group: "GAKUEN IDOLM@STER", jpName: "篠澤 広", name: "시노사와 히로", hex: "#00afcc", image: "gakuen/Hiro_Shinosawa.webp" },

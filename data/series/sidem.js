@@ -6,7 +6,7 @@
 */
 (() => {
   const idols = [
-    { no: 4001, idolNo: 1, officialId: 1, series: "sidem", attribute: "Physical", group: "SIDEM", unit: "Jupiter", unitKo: "주피터", slug: "toma", jpName: "天ヶ瀬 冬馬", name: "아마가세 토마", hex: "#F32836", image: "sidem/Toma_Amagase.webp" },
+    { no: 4001, idolNo: 1, officialId: 1, series: "sidem", attribute: "Physical", group: "SIDEM", unit: "Jupiter", unitKo: "주피터", slug: "toma", jpName: "天ヶ瀬 冬馬", name: "아마가세 토우마", hex: "#F32836", image: "sidem/Toma_Amagase.webp" },
     { no: 4002, idolNo: 2, officialId: 4, series: "sidem", attribute: "Physical", group: "SIDEM", unit: "DRAMATIC STARS", unitKo: "드라마틱 스타즈", slug: "teru", jpName: "天道 輝", name: "텐도 테루", hex: "#E1261C", image: "sidem/Teru_Tendo.webp" },
     { no: 4003, idolNo: 3, officialId: 11, series: "sidem", attribute: "Physical", group: "SIDEM", unit: "Beit", unitKo: "바이트", slug: "minori", jpName: "渡辺 みのり", name: "와타나베 미노리", hex: "#EE869A", image: "sidem/Minori_Watanabe.webp" },
     { no: 4004, idolNo: 4, officialId: 15, series: "sidem", attribute: "Physical", group: "SIDEM", unit: "FRAME", unitKo: "프레임", slug: "ryu", jpName: "木村 龍", name: "키무라 류", hex: "#EA7125", image: "sidem/Ryu_Kimura.webp" },
