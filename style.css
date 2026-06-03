@@ -2249,6 +2249,8 @@
 
     .result-stat-series {
       display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      justify-content: stretch;
       justify-items: center;
       gap: 16px;
       padding: 24px;
@@ -2267,9 +2269,12 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      flex-wrap: wrap;
       gap: 12px;
       width: 100%;
+      max-width: 100%;
       min-width: 0;
+      margin-inline: auto;
     }
 
     .result-series-item {
@@ -2277,8 +2282,8 @@
       align-items: center;
       justify-content: center;
       gap: 9px;
-      flex: 0 0 auto;
-      min-width: max-content;
+      flex: 0 1 auto;
+      min-width: 0;
       max-width: 100%;
       padding: 8px 12px;
       border-radius: 14px;
@@ -2305,8 +2310,10 @@
     }
 
     .result-series-name {
-      min-width: max-content;
+      min-width: 0;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
       overflow-wrap: normal;
       word-break: keep-all;
       line-height: 1.2;
@@ -3076,12 +3083,16 @@
 
       .swatches {
         --swatch-size: clamp(46px, 13vw, 56px);
-        display: grid;
-        grid-template-columns: repeat(3, var(--swatch-size));
+        --swatch-gap: clamp(9px, 2.8vw, 12px);
+        display: flex;
+        flex-wrap: wrap;
         justify-content: center;
         align-items: center;
-        gap: clamp(9px, 2.8vw, 12px);
-        width: 100%;
+        gap: var(--swatch-gap);
+        width: min(
+          calc(var(--swatch-size) + var(--swatch-size) + var(--swatch-size) + var(--swatch-gap) + var(--swatch-gap)),
+          100%
+        );
       }
     }
 
