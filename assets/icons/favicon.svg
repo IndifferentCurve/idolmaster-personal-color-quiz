@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="THE IDOLM@STER ALLSTARS">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="THE IDOLM@STER">
   <defs>
     <linearGradient id="badge" x1="5" y1="5" x2="59" y2="59" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#ff7592"/>
-      <stop offset="1" stop-color="#f24a70"/>
+      <stop offset="0" stop-color="#ff9ccc"/>
+      <stop offset="1" stop-color="#ff74b8"/>
     </linearGradient>
   </defs>
   <rect x="3" y="3" width="58" height="58" rx="14" fill="url(#badge)"/>

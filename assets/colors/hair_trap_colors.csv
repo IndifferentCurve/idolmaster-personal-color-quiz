@@ -1,4 +1,4 @@
-no,series,seriesLabel,name,jpName,attribute,personalHex,baseHairTrapHex,image
+﻿no,series,seriesLabel,name,jpName,attribute,personalHex,baseHairTrapHex,image
 1,allstars,올스타즈,아마미 하루카,天海 春香,Princess,#E22B30,#8E5049,allstars/Haruka_Amami.webp
 2,allstars,올스타즈,키사라기 치하야,如月 千早,Fairy,#2743D2,#28355A,allstars/Chihaya_Kisaragi.webp
 3,allstars,올스타즈,호시이 미키,星井 美希,Angel,#B4E04B,#F2E48E,allstars/Miki_Hoshii.webp
@@ -282,3 +282,52 @@ no,series,seriesLabel,name,jpName,attribute,personalHex,baseHairTrapHex,image
 3188,cinderella,신데렐라 걸즈,무라카미 토모에,村上巴,Passion,#AB192C,#B92D33,cinderella/tomoe.webp
 3189,cinderella,신데렐라 걸즈,키무라 나츠키,木村夏樹,Passion,#53565A,#82583F,cinderella/natsuki.webp
 3190,cinderella,신데렐라 걸즈,오이카와 시즈쿠,及川雫,Passion,#FFFFFF,#5C4249,cinderella/shizuku.webp
+4001,sidem,SideM,아마가세 토마,天ヶ瀬 冬馬,Physical,#F32836,#9B5B3E,sidem/Toma_Amagase.webp
+4002,sidem,SideM,텐도 테루,天道 輝,Physical,#E1261C,#F6664D,sidem/Teru_Tendo.webp
+4003,sidem,SideM,와타나베 미노리,渡辺 みのり,Physical,#EE869A,#A67F78,sidem/Minori_Watanabe.webp
+4004,sidem,SideM,키무라 류,木村 龍,Physical,#EA7125,#403536,sidem/Ryu_Kimura.webp
+4005,sidem,SideM,아키야마 하야토,秋山 隼人,Physical,#FF7000,#B2BB17,sidem/Hayato_Akiyama.webp
+4006,sidem,SideM,이세야 시키,伊瀬谷 四季,Physical,#DD0AB2,#5E353E,sidem/Shiki_Iseya.webp
+4007,sidem,SideM,아카이 스자쿠,紅井 朱雀,Physical,#E23B30,#F37C4B,sidem/Suzaku_Akai.webp
+4008,sidem,SideM,아스란=BB 2세,アスラン＝BBⅡ世,Physical,#6967AB,#435261,sidem/Asselin_Beelzebuth_II.webp
+4009,sidem,SideM,미즈시마 사키,水嶋 咲,Physical,#EB6EA5,#A66C5C,sidem/Saki_Mizushima.webp
+4010,sidem,SideM,타치바나 시로,橘 志狼,Physical,#E72510,#FFCA78,sidem/Shiro_Tachibana.webp
+4011,sidem,SideM,타이가 타케루,大河 タケル,Physical,#001CA8,#19386B,sidem/Takeru_Taiga.webp
+4012,sidem,SideM,엔죠지 미치루,円城寺 道流,Physical,#FDA900,#2F2A25,sidem/Michiru_Enjoji.webp
+4013,sidem,SideM,키자키 렌,牙崎 漣,Physical,#BA2636,#B8C9D4,sidem/Ren_Kizaki.webp
+4014,sidem,SideM,카부토 다이고,兜 大吾,Physical,#DC291E,#E2A6A7,sidem/Daigo_Kabuto.webp
+4015,sidem,SideM,마유미 에이신,眉見 鋭心,Physical,#E01828,#C04B54,sidem/Eishin_Mayumi.webp
+4016,sidem,SideM,이쥬인 호쿠토,伊集院 北斗,Intelli,#1226AA,#E4C46E,sidem/Hokuto_Ijuin.webp
+4017,sidem,SideM,사쿠라바 카오루,桜庭 薫,Intelli,#004EBC,#5A4C54,sidem/Kaoru_Sakuraba.webp
+4018,sidem,SideM,카구라 레이,神楽 麗,Intelli,#004898,#4B4440,sidem/Rei_Kagura.webp
+4019,sidem,SideM,타카죠 쿄지,鷹城 恭二,Intelli,#6DC6E7,#6C7284,sidem/Kyoji_Takajo.webp
+4020,sidem,SideM,아오이 쿄스케,蒼井 享介,Intelli,#53DA3F,#FE8E40,sidem/Kyosuke_Aoi.webp
+4021,sidem,SideM,아쿠노 히데오,握野 英雄,Intelli,#73B8E2,#7C7160,sidem/Hideo_Akuno.webp
+4022,sidem,SideM,네코야나기 키리오,猫柳 キリオ,Intelli,#FFD700,#C6E9C8,sidem/Kirio_Nekoyanagi.webp
+4023,sidem,SideM,후유미 준,冬美 旬,Intelli,#004EBC,#61585B,sidem/Jun_Fuyumi.webp
+4024,sidem,SideM,사카키 나츠키,榊 夏来,Intelli,#48D2DD,#CFC9DD,sidem/Natsuki_Sakaki.webp
+4025,sidem,SideM,쿠로노 겐부,黒野 玄武,Intelli,#001CA8,#423E48,sidem/Genbu_Kurono.webp
+4026,sidem,SideM,시노노메 소이치로,東雲 荘一郎,Intelli,#008E74,#5F5E56,sidem/Soichiro_Shinonome.webp
+4027,sidem,SideM,오카무라 나오,岡村 直央,Intelli,#211E55,#413E39,sidem/Nao_Okamura.webp
+4028,sidem,SideM,하자마 미치오,硲 道夫,Intelli,#426CA9,#B9D4CF,sidem/Michio_Hazama.webp
+4029,sidem,SideM,야마시타 지로,山下 次郎,Intelli,#EE7800,#8A5A3F,sidem/Jiro_Yamashita.webp
+4030,sidem,SideM,츠쿠모 카즈키,九十九 一希,Intelli,#D3A243,#E08C35,sidem/Kazuki_Tsukumo.webp
+4031,sidem,SideM,쿠즈노하 아메히코,葛之葉 雨彦,Intelli,#4D4D4D,#2D4C50,sidem/Amehiko_Kuzunoha.webp
+4032,sidem,SideM,코론 크리스,古論 クリス,Intelli,#00C4DF,#6A475B,sidem/Chris_Koron.webp
+4033,sidem,SideM,아마미네 슈,天峰 秀,Intelli,#0198F0,#41B7B1,sidem/Shu_Amamine.webp
+4034,sidem,SideM,미타라이 쇼타,御手洗 翔太,Mental,#8FD400,#7E9361,sidem/Shota_Mitarai.webp
+4035,sidem,SideM,카시와기 츠바사,柏木 翼,Mental,#2EB135,#938E66,sidem/Tsubasa_Kashiwagi.webp
+4036,sidem,SideM,츠즈키 케이,都築 圭,Mental,#C2AFE6,#E3C36A,sidem/Kei_Tsuzuki.webp
+4037,sidem,SideM,피에르,ピエール,Mental,#8ADD66,#FFDD51,sidem/Pierre.webp
+4038,sidem,SideM,아오이 유스케,蒼井 悠介,Mental,#FFE200,#FEA441,sidem/Yusuke_Aoi.webp
+4039,sidem,SideM,신겐 세이지,信玄 誠司,Mental,#7B8D42,#403D2F,sidem/Seiji_Shingen.webp
+4040,sidem,SideM,하나무라 쇼마,華村 翔真,Mental,#6A488E,#7B4F3D,sidem/Shoma_Hanamura.webp
+4041,sidem,SideM,키요스미 쿠로,清澄 九郎,Mental,#71A4D9,#1F5B4F,sidem/Kuro_Kiyosumi.webp
+4042,sidem,SideM,와카자토 하루나,若里 春名,Mental,#70D551,#3E3733,sidem/Haruna_Wakazato.webp
+4043,sidem,SideM,카미야 유키히로,神谷 幸広,Mental,#D88B83,#9A6B54,sidem/Yukihiro_Kamiya.webp
+4044,sidem,SideM,우즈키 마키오,卯月 巻緒,Mental,#EEC362,#9CA083,sidem/Makio_Uzuki.webp
+4045,sidem,SideM,히메노 카논,姫野 かのん,Mental,#FAB6C4,#D2A45D,sidem/Kanon_Himeno.webp
+4046,sidem,SideM,마이타 루이,舞田 類,Mental,#F7D54E,#F7D11E,sidem/Rui_Maita.webp
+4047,sidem,SideM,아키즈키 료,秋月 涼,Mental,#70D551,#857149,sidem/Ryo_Akizuki.webp
+4048,sidem,SideM,키타무라 소라,北村 想楽,Mental,#3F7735,#1F1A2B,sidem/Sora_Kitamura.webp
+4049,sidem,SideM,하나조노 모모히토,花園 百々人,Mental,#B8F028,#D8DBA3,sidem/Momohito_Hanazono.webp

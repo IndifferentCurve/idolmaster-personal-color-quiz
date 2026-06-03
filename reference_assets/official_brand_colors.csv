@@ -1,0 +1,9 @@
+series_key,brand_jp,brand_ko,official_hex,color_preview,ui_gradient,source,source_url,notes
+idolmaster,アイドルマスター,아이돌마스터 전체,#ff74b8,■ #ff74b8,#ff9ccc → #ff74b8,アイマスDB 色資料,https://imas-db.jp/misc/color.html,Used for the site favicon and overall brand reference.
+allstars,765PRO ALLSTARS,올스타즈,#f34f6d,■ #f34f6d,#ff7894 → #f34f6d,アイマスDB 色資料,https://imas-db.jp/misc/color.html,Used for 765PRO ALLSTARS series badges.
+million,ミリオンライブ,밀리언 스타즈,#ffc30b,■ #ffc30b,#ffdc64 → #ffc30b,アイマスDB 色資料,https://imas-db.jp/misc/color.html,Used for Million Live / Million Stars series badges.
+cinderella,シンデレラガールズ,신데렐라 걸즈,#2681c8,■ #2681c8,#5aaee8 → #2681c8,アイマスDB 色資料,https://imas-db.jp/misc/color.html,Used for Cinderella Girls series badges.
+shiny,シャイニーカラーズ,샤이니 컬러즈,#8dbbff,■ #8dbbff,#ff7db7 → #7ac7ff,アイマスDB 色資料,https://imas-db.jp/misc/color.html,Official reference color; UI badge keeps the previous pink-blue Shiny Colors gradient for visual identity.
+gakuen,学園アイドルマスター,학원 아이돌마스터,#f39800,■ #f39800,#ffc052 → #f39800,アイマスDB 色資料,https://imas-db.jp/misc/color.html,Used for Gakuen Idolmaster series badges.
+sidem,SideM,SideM,#0fbe94,■ #0fbe94,reference only,アイマスDB 色資料,https://imas-db.jp/misc/color.html,Stored for future reference.
+vialive,ヴイアライヴ,vα-liv,#656a75,■ #656a75,reference only,アイマスDB 色資料,https://imas-db.jp/misc/color.html,Stored for future reference.

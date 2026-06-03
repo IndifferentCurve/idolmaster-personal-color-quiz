@@ -27,6 +27,8 @@ const state = {
   series: ["all"],
   countMode: "preset",
   requestedQuestionCount: 5,
+  language: "kr",
+  currentAnswerFeedback: null,
   locked: false
 };
 const lastChoiceSignatures = new Map();
@@ -60,11 +62,291 @@ const resetButton = document.getElementById("resetButton");
 const saveResultButton = document.getElementById("saveResultButton");
 const resultPreview = document.getElementById("resultPreview");
 const resultPreviewImage = document.getElementById("resultPreviewImage");
+const scoreUnit = document.getElementById("scoreUnit");
 const homeButton = document.getElementById("homeButton");
 const nextButton = document.getElementById("nextButton");
 const themeToggle = document.getElementById("themeToggle");
+const languageButtons = [...document.querySelectorAll(".language-button")];
 const themeStorageKey = "idolmasterColorQuizTheme";
+const languageStorageKey = "idolmasterColorQuizLanguage";
 const appFontStack = "Pretendard, 'Noto Sans KR', Inter, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+const languageMeta = {
+  kr: { htmlLang: "ko" },
+  jp: { htmlLang: "ja" },
+  en: { htmlLang: "en" }
+};
+const translations = {
+  kr: {
+    documentTitle: "아이돌마스터 이미지 컬러 맞추기",
+    brandTitle: "THE IDOLM@STER",
+    heading: "이미지 컬러 맞추기",
+    themeToDark: "다크모드로 전환",
+    themeToLight: "라이트모드로 전환",
+    seriesSelect: "시리즈 선택",
+    peopleSuffix: "명",
+    questionCount: "문항 수",
+    countPreset5: "5개",
+    countPreset10: "10개",
+    countPresetAll: "전체",
+    manualInput: "직접 입력",
+    manualActive: "적용 중",
+    difficulty: "난이도",
+    selectedSeries: "선택한 시리즈",
+    totalPeople: (count) => `총 ${count}명`,
+    poolMeta: (count, difficulty) => `${count}문항 · ${difficulty}`,
+    start: "게임 시작",
+    previous: "❮ 이전",
+    backHomeLabel: "메인 화면으로 돌아가기",
+    question: "문항",
+    correct: "정답",
+    confirm: "확인",
+    viewResult: "결과 보기",
+    result: "완료",
+    scoreUnit: "점",
+    correctSummary: (correct, total) => `${correct} / ${total} 정답`,
+    countWithUnit: (count) => `${count}개`,
+    record: "기록",
+    correctCount: "맞춘 개수",
+    totalQuestions: "문항 수",
+    resultDifficulty: "난이도",
+    series: "시리즈",
+    saveResult: "결과 저장",
+    saving: "저장 중",
+    backToStart: "처음으로 돌아가기",
+    resultImage: "결과 이미지",
+    resultImageAlt: "퀴즈 결과 이미지",
+    resultImageError: "결과 이미지를 만들 수 없습니다.",
+    resultSaveError: "결과 이미지를 저장하지 못했습니다.",
+    shareTitle: "아이돌마스터 이미지 컬러 맞추기 결과",
+    swatchLabel: (index) => `${index}번 색상`,
+    illustrationAlt: (name) => `${name} 일러스트`,
+    answerCorrect: "정답",
+    answerWrong: "오답",
+    answerSelected: "선택",
+    answerAnswer: "정답",
+    sourceNote: "자료 출처",
+    sourceTitle: "출처",
+    hexSource: "HEX",
+    imageSource: "이미지",
+    canvasFooter: "Image Color Quiz",
+    resultMessages: {
+      perfect: "당신이 아이돌마스터",
+      great: "@틀딱",
+      good: "@청년",
+      fair: "@민이",
+      low: "놀안분?",
+      zero: "ㅁㅎ?"
+    }
+  },
+  jp: {
+    documentTitle: "アイドルマスター イメージカラークイズ",
+    brandTitle: "THE IDOLM@STER",
+    heading: "イメージカラークイズ",
+    themeToDark: "ダークモードに切り替え",
+    themeToLight: "ライトモードに切り替え",
+    seriesSelect: "シリーズ選択",
+    peopleSuffix: "人",
+    questionCount: "出題数",
+    countPreset5: "5問",
+    countPreset10: "10問",
+    countPresetAll: "全員",
+    manualInput: "直接入力",
+    manualActive: "適用中",
+    difficulty: "難易度",
+    selectedSeries: "選択中のシリーズ",
+    totalPeople: (count) => `全${count}人`,
+    poolMeta: (count, difficulty) => `${count}問 · ${difficulty}`,
+    start: "ゲーム開始",
+    previous: "❮ 戻る",
+    backHomeLabel: "メイン画面に戻る",
+    question: "問題",
+    correct: "正解",
+    confirm: "確認",
+    viewResult: "結果を見る",
+    result: "完了",
+    scoreUnit: "点",
+    correctSummary: (correct, total) => `${correct} / ${total} 正解`,
+    countWithUnit: (count) => `${count}問`,
+    record: "記録",
+    correctCount: "正解数",
+    totalQuestions: "出題数",
+    resultDifficulty: "難易度",
+    series: "シリーズ",
+    saveResult: "結果保存",
+    saving: "保存中",
+    backToStart: "最初に戻る",
+    resultImage: "結果画像",
+    resultImageAlt: "クイズ結果画像",
+    resultImageError: "結果画像を作成できません。",
+    resultSaveError: "結果画像を保存できませんでした。",
+    shareTitle: "アイドルマスター イメージカラークイズ 結果",
+    swatchLabel: (index) => `${index}番の色`,
+    illustrationAlt: (name) => `${name} イラスト`,
+    answerCorrect: "正解",
+    answerWrong: "不正解",
+    answerSelected: "選択",
+    answerAnswer: "正解",
+    sourceNote: "出典",
+    sourceTitle: "出典",
+    hexSource: "HEX",
+    imageSource: "画像",
+    canvasFooter: "Image Color Quiz",
+    resultMessages: {
+      perfect: "あなたがアイドルマスター",
+      great: "@古参",
+      good: "@青年",
+      fair: "@民",
+      low: "にわか?",
+      zero: "むり"
+    }
+  },
+  en: {
+    documentTitle: "THE IDOLM@STER Image Color Match",
+    brandTitle: "THE IDOLM@STER",
+    heading: "Image Color Match",
+    themeToDark: "Switch to dark mode",
+    themeToLight: "Switch to light mode",
+    seriesSelect: "Series",
+    peopleSuffix: "",
+    questionCount: "Questions",
+    countPreset5: "5",
+    countPreset10: "10",
+    countPresetAll: "All",
+    manualInput: "Custom",
+    manualActive: "Active",
+    difficulty: "Difficulty",
+    selectedSeries: "Selected Series",
+    totalPeople: (count) => `${count} idols`,
+    poolMeta: (count, difficulty) => `${count} questions · ${difficulty}`,
+    start: "Start Game",
+    previous: "❮ Back",
+    backHomeLabel: "Back to main screen",
+    question: "Question",
+    correct: "Correct",
+    confirm: "Confirm",
+    viewResult: "View Result",
+    result: "Complete",
+    scoreUnit: "pts",
+    correctSummary: (correct, total) => `${correct} / ${total} correct`,
+    countWithUnit: (count) => `${count}`,
+    record: "Record",
+    correctCount: "Correct",
+    totalQuestions: "Questions",
+    resultDifficulty: "Difficulty",
+    series: "Series",
+    saveResult: "Save Result",
+    saving: "Saving",
+    backToStart: "Back to Start",
+    resultImage: "Result Image",
+    resultImageAlt: "Quiz result image",
+    resultImageError: "Could not create the result image.",
+    resultSaveError: "Could not save the result image.",
+    shareTitle: "THE IDOLM@STER Image Color Match Result",
+    swatchLabel: (index) => `Color ${index}`,
+    illustrationAlt: (name) => `${name} illustration`,
+    answerCorrect: "Correct",
+    answerWrong: "Wrong",
+    answerSelected: "Selected",
+    answerAnswer: "Answer",
+    sourceNote: "Sources",
+    sourceTitle: "Sources",
+    hexSource: "HEX",
+    imageSource: "Images",
+    canvasFooter: "Image Color Quiz",
+    resultMessages: {
+      perfect: "You are THE IDOLM@STER",
+      great: "@Old Guard",
+      good: "@Regular",
+      fair: "@Rookie",
+      low: "Tourist?",
+      zero: "Nope"
+    }
+  }
+};
+const localizedSeriesLabels = {
+  kr: seriesLabels,
+  jp: {
+    allstars: "765PRO ALLSTARS",
+    million: "ミリオンスターズ",
+    cinderella: "シンデレラガールズ",
+    shiny: "シャイニーカラーズ",
+    gakuen: "学園アイドルマスター",
+    sidem: "SideM",
+    all: "すべて"
+  },
+  en: {
+    allstars: "765PRO ALLSTARS",
+    million: "Million Stars",
+    cinderella: "Cinderella Girls",
+    shiny: "Shiny Colors",
+    gakuen: "Gakuen Idolmaster",
+    sidem: "SideM",
+    all: "All"
+  }
+};
+const localizedAttributeLabels = {
+  kr: attributeLabels,
+  jp: {
+    Princess: "プリンセス",
+    Fairy: "フェアリー",
+    Angel: "エンジェル",
+    Cute: "キュート",
+    Cool: "クール",
+    Passion: "パッション",
+    Physical: "フィジカル",
+    Mental: "メンタル",
+    Intelli: "インテリ",
+    "illumination STARS": "イルミネーションスターズ",
+    "L’Antica": "アンティーカ",
+    "Houkago Climax Girls": "放課後クライマックスガールズ",
+    ALSTROEMERIA: "アルストロメリア",
+    Straylight: "ストレイライト",
+    noctchill: "ノクチル",
+    SHHis: "シーズ",
+    CoMETIK: "コメティック",
+    "HATSUBOSHI GAKUEN": "初星学園"
+  },
+  en: {
+    Princess: "Princess",
+    Fairy: "Fairy",
+    Angel: "Angel",
+    Cute: "Cute",
+    Cool: "Cool",
+    Passion: "Passion",
+    Physical: "Physical",
+    Mental: "Mental",
+    Intelli: "Intelli",
+    "illumination STARS": "illumination STARS",
+    "L’Antica": "L’Antica",
+    "Houkago Climax Girls": "Houkago Climax Girls",
+    ALSTROEMERIA: "ALSTROEMERIA",
+    Straylight: "Straylight",
+    noctchill: "noctchill",
+    SHHis: "SHHis",
+    CoMETIK: "CoMETIK",
+    "HATSUBOSHI GAKUEN": "Hatsuboshi Gakuen"
+  }
+};
+const localizedDifficultyLabels = {
+  kr: difficultyLabels,
+  jp: {
+    easy: "Easy",
+    normal: "Normal",
+    hard: "Hard",
+    "very-hard": "Very Hard"
+  },
+  en: {
+    easy: "Easy",
+    normal: "Normal",
+    hard: "Hard",
+    "very-hard": "Very Hard"
+  }
+};
+const languageNames = {
+  kr: { kr: "한국어", jp: "일본어", en: "영어" },
+  jp: { kr: "韓国語", jp: "日本語", en: "英語" },
+  en: { kr: "Korean", jp: "Japanese", en: "English" }
+};
 
 const enrichedIdols = ALL_IDOLS.map((idol) => {
   const series = idol.series || inferMillionSeries(idol);
@@ -81,6 +363,13 @@ const enrichedIdols = ALL_IDOLS.map((idol) => {
 });
 
 applyTheme(getInitialTheme());
+applyLanguage(getInitialLanguage());
+
+languageButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    applyLanguage(button.dataset.language, true);
+  });
+});
 
 document.querySelectorAll("input[name='series']").forEach((input) => {
   input.addEventListener("change", () => {
@@ -162,11 +451,25 @@ function getInitialTheme() {
   return window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ? "dark" : "light";
 }
 
+function getInitialLanguage() {
+  try {
+    const storedLanguage = window.localStorage?.getItem(languageStorageKey);
+    if (storedLanguage === "kr" || storedLanguage === "jp" || storedLanguage === "en") return storedLanguage;
+  } catch (error) {
+    // Local storage can be unavailable in restricted browser contexts.
+  }
+
+  const browserLanguage = navigator.language?.toLowerCase() || "";
+  if (browserLanguage.startsWith("ja")) return "jp";
+  if (browserLanguage.startsWith("en")) return "en";
+  return "kr";
+}
+
 function applyTheme(theme, shouldStore = false) {
   const normalizedTheme = theme === "dark" ? "dark" : "light";
   document.documentElement.dataset.theme = normalizedTheme;
   themeToggle.setAttribute("aria-pressed", String(normalizedTheme === "dark"));
-  themeToggle.setAttribute("aria-label", normalizedTheme === "dark" ? "라이트모드로 전환" : "다크모드로 전환");
+  themeToggle.setAttribute("aria-label", normalizedTheme === "dark" ? t("themeToLight") : t("themeToDark"));
 
   if (shouldStore) {
     try {
@@ -175,6 +478,140 @@ function applyTheme(theme, shouldStore = false) {
       // The selected theme still applies for the current page.
     }
   }
+}
+
+function applyLanguage(language, shouldStore = false) {
+  const normalizedLanguage = translations[language] ? language : "kr";
+  state.language = normalizedLanguage;
+  document.documentElement.lang = languageMeta[normalizedLanguage].htmlLang;
+  document.title = t("documentTitle");
+
+  languageButtons.forEach((button) => {
+    const isSelected = button.dataset.language === normalizedLanguage;
+    button.classList.toggle("is-selected", isSelected);
+    button.setAttribute("aria-pressed", String(isSelected));
+    button.setAttribute("aria-label", languageNames[normalizedLanguage][button.dataset.language]);
+  });
+
+  setText("#brandTitle", t("brandTitle"));
+  setText("#mainTitle", t("heading"));
+  setText(".series-panel legend", t("seriesSelect"));
+  setText("#countTitle", t("questionCount"));
+  setText(".number-field label", t("manualInput"));
+  setText("fieldset.panel:not(.series-panel) legend", t("difficulty"));
+  setText(".pool-kicker", t("selectedSeries"));
+  setText("#startButton", t("start"));
+  setText("#sourceNoteTitle", t("sourceTitle"));
+  setText("#hexSourceLabel", t("hexSource"));
+  setText("#imageSourceLabel", t("imageSource"));
+  document.querySelector(".source-note")?.setAttribute("aria-label", t("sourceNote"));
+  setText("#homeButton", t("previous"));
+  homeButton.setAttribute("aria-label", t("backHomeLabel"));
+  setText("#quizScreen .stat:first-child span", t("question"));
+  setText("#quizScreen .stat:nth-child(2) span", t("correct"));
+  setText(".result-main .eyebrow", "RESULT");
+  setText("#resultMessage", t("result"));
+  setText(".result-side .panel-title", t("record"));
+  setText(".result-stat:nth-child(1) > span", t("correctCount"));
+  setText(".result-stat:nth-child(2) > span", t("totalQuestions"));
+  setText(".result-stat:nth-child(3) > span", t("resultDifficulty"));
+  setText(".result-stat-series > span", t("series"));
+  setText("#saveResultButton", t("saveResult"));
+  setText("#resetButton", t("backToStart"));
+  setText("#resultPreview span", t("resultImage"));
+  setText(scoreUnit, t("scoreUnit"));
+  resultPreviewImage.alt = t("resultImageAlt");
+  questionCountField?.querySelector("label")?.setAttribute("data-active-label", t("manualActive"));
+  syncCountPresetLabels();
+  syncDifficultyLabels();
+  syncSeriesOptionLabels();
+  applyTheme(document.documentElement.dataset.theme || getInitialTheme());
+  refreshLocalizedScreen();
+
+  if (shouldStore) {
+    try {
+      window.localStorage?.setItem(languageStorageKey, normalizedLanguage);
+    } catch (error) {
+      // The selected language still applies for the current page.
+    }
+  }
+}
+
+function refreshLocalizedScreen() {
+  updateStartSummary();
+
+  if (screens.quiz.classList.contains("is-active") && state.questions.length) {
+    const question = state.questions[state.index];
+    renderQuestionText(question);
+    updateQuestionImageText(question);
+    updateSwatchAriaLabels();
+    if (state.currentAnswerFeedback) {
+      renderAnswerNote(
+        state.currentAnswerFeedback.isCorrect,
+        state.currentAnswerFeedback.answerHex,
+        state.currentAnswerFeedback.selectedHex
+      );
+      nextButton.textContent = state.index + 1 >= state.questions.length ? t("viewResult") : t("confirm");
+    } else {
+      nextButton.textContent = t("confirm");
+    }
+  }
+
+  if (screens.result.classList.contains("is-active") && state.questions.length) {
+    renderResultDetails();
+  }
+}
+
+function setText(selectorOrElement, text) {
+  const element = typeof selectorOrElement === "string"
+    ? document.querySelector(selectorOrElement)
+    : selectorOrElement;
+  if (element) element.textContent = text;
+}
+
+function t(key, ...args) {
+  const dictionary = translations[state.language] || translations.kr;
+  const value = dictionary[key] ?? translations.kr[key] ?? key;
+  return typeof value === "function" ? value(...args) : value;
+}
+
+function syncCountPresetLabels() {
+  document.querySelectorAll(".count-preset").forEach((button) => {
+    if (button.dataset.count === "5") button.textContent = t("countPreset5");
+    if (button.dataset.count === "10") button.textContent = t("countPreset10");
+    if (button.dataset.count === "all") button.textContent = t("countPresetAll");
+  });
+}
+
+function syncDifficultyLabels() {
+  document.querySelectorAll("input[name='difficulty']").forEach((input) => {
+    const strong = input.closest(".choice-label")?.querySelector("strong");
+    if (strong) strong.textContent = getDifficultyLabel(input.value);
+  });
+}
+
+function syncSeriesOptionLabels() {
+  document.querySelectorAll("input[name='series']").forEach((input) => {
+    const label = input.closest(".choice-label");
+    if (!label) return;
+
+    const name = label.querySelector(".group-choice-main strong");
+    if (name) name.textContent = getSeriesLabel(input.value);
+
+    const count = input.value === "all"
+      ? enrichedIdols.length
+      : enrichedIdols.filter((idol) => idol.series === input.value).length;
+    const directChildren = [...label.children];
+    const countElement = directChildren[directChildren.length - 1];
+    if (countElement && countElement.tagName === "SPAN") {
+      countElement.textContent = formatPeopleCount(count);
+    }
+  });
+}
+
+function formatPeopleCount(count) {
+  if (state.language === "en") return String(count);
+  return `${count}${t("peopleSuffix")}`;
 }
 
 function startGame() {
@@ -198,16 +635,21 @@ function renderQuestion() {
   progressText.textContent = `${current} / ${total}`;
   setProgress((current - 1) / total);
   scoreText.textContent = String(state.correct);
-  characterName.textContent = question.name;
-  characterMeta.textContent = `${question.jpName} · ${getAttributeLabel(question.attribute)}`;
+  renderQuestionText(question);
   answerNote.innerHTML = "";
   feedback.className = "feedback";
+  state.currentAnswerFeedback = null;
   nextButton.hidden = true;
-  nextButton.textContent = "확인";
+  nextButton.textContent = t("confirm");
 
   setQuestionImage(question);
   renderChoices(question);
   preloadUpcomingImages();
+}
+
+function renderQuestionText(question) {
+  characterName.textContent = getIdolDisplayName(question);
+  characterMeta.textContent = `${getIdolMetaName(question)} · ${getAttributeLabel(question.attribute)}`;
 }
 
 function renderChoices(question) {
@@ -224,7 +666,7 @@ function renderChoices(question) {
     button.className = "color-choice";
     button.style.background = choice.hex;
     button.dataset.hex = choice.hex.toLowerCase();
-    button.setAttribute("aria-label", `${index + 1}번 색상`);
+    button.setAttribute("aria-label", t("swatchLabel", index + 1));
     button.addEventListener("click", () => judgeAnswer(button, choice, question));
     swatches.appendChild(button);
   });
@@ -265,6 +707,11 @@ function judgeAnswer(button, choice, question) {
     if (answerButton) answerButton.classList.add("is-answer");
   }
 
+  state.currentAnswerFeedback = {
+    isCorrect,
+    answerHex: question.hex,
+    selectedHex: choice.hex
+  };
   renderAnswerNote(isCorrect, question.hex, choice.hex);
 
   feedbackMark.textContent = isCorrect ? "O" : "X";
@@ -274,7 +721,7 @@ function judgeAnswer(button, choice, question) {
   [...swatches.children].forEach((item) => {
     item.disabled = true;
   });
-  nextButton.textContent = state.index + 1 >= state.questions.length ? "결과 보기" : "확인";
+  nextButton.textContent = state.index + 1 >= state.questions.length ? t("viewResult") : t("confirm");
   nextButton.hidden = false;
   nextButton.focus();
 }
@@ -283,11 +730,11 @@ function renderAnswerNote(isCorrect, answerHex, selectedHex) {
   const answer = formatHex(answerHex);
   const selected = formatHex(selectedHex);
   const statusClass = isCorrect ? "is-correct" : "is-wrong";
-  const statusText = isCorrect ? "정답" : "오답";
+  const statusText = isCorrect ? t("answerCorrect") : t("answerWrong");
   const selectedLine = isCorrect ? "" : `
     <span class="answer-chip is-selected-color">
       <span class="mini-chip" style="background:${selected}"></span>
-      선택 ${selected}
+      ${t("answerSelected")} ${selected}
     </span>
   `;
 
@@ -297,7 +744,7 @@ function renderAnswerNote(isCorrect, answerHex, selectedHex) {
       ${selectedLine}
       <span class="answer-chip is-answer-color">
         <span class="mini-chip" style="background:${answer}"></span>
-        정답 ${answer}
+        ${t("answerAnswer")} ${answer}
       </span>
     </div>
   `;
@@ -322,24 +769,29 @@ function continueAfterFeedback() {
 }
 
 function showResult() {
+  renderResultDetails();
+  showScreen("result");
+}
+
+function renderResultDetails() {
   const total = state.questions.length;
-  const percent = Math.round((state.correct / total) * 100);
+  const percent = total ? Math.round((state.correct / total) * 100) : 0;
   document.getElementById("scorePercent").textContent = String(percent);
-  document.getElementById("scoreSummary").textContent = `${state.correct} / ${total} 정답`;
-  document.getElementById("resultCorrect").textContent = `${state.correct}개`;
-  document.getElementById("resultTotal").textContent = `${total}개`;
-  document.getElementById("resultDifficulty").textContent = difficultyLabels[state.difficulty];
+  setText(scoreUnit, t("scoreUnit"));
+  document.getElementById("scoreSummary").textContent = t("correctSummary", state.correct, total);
+  document.getElementById("resultCorrect").textContent = t("countWithUnit", state.correct);
+  document.getElementById("resultTotal").textContent = t("countWithUnit", total);
+  document.getElementById("resultDifficulty").textContent = getDifficultyLabel(state.difficulty);
   renderResultSeries(state.series);
   const resultMessage = document.getElementById("resultMessage");
   resultMessage.textContent = getResultMessage(percent);
   resultMessage.classList.toggle("is-perfect", percent === 100);
-  showScreen("result");
 }
 
 async function saveResultImage() {
   const originalText = saveResultButton.textContent;
   saveResultButton.disabled = true;
-  saveResultButton.textContent = "저장 중";
+  saveResultButton.textContent = t("saving");
 
   try {
     const canvas = await createResultCanvas();
@@ -348,7 +800,7 @@ async function saveResultImage() {
     resultPreview.hidden = false;
 
     const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png", 1));
-    if (!blob) throw new Error("결과 이미지를 만들 수 없습니다.");
+    if (!blob) throw new Error(t("resultImageError"));
 
     const fileName = `idolmaster-color-result-${new Date().toISOString().slice(0, 10)}.png`;
     let shared = false;
@@ -359,7 +811,7 @@ async function saveResultImage() {
         try {
           await navigator.share({
             files: [file],
-            title: "아이돌마스터 퍼스널 컬러 맞추기 결과",
+            title: t("shareTitle"),
             text: document.getElementById("scoreSummary").textContent
           });
           shared = true;
@@ -373,7 +825,7 @@ async function saveResultImage() {
       downloadBlob(blob, fileName);
     }
   } catch (error) {
-    window.alert("결과 이미지를 저장하지 못했습니다.");
+    window.alert(t("resultSaveError"));
   } finally {
     saveResultButton.disabled = false;
     saveResultButton.textContent = originalText;
@@ -411,9 +863,9 @@ async function createResultCanvas() {
   const activeSeries = getActiveSeriesValues(state.series);
   const seriesIconImages = await loadSeriesIconImages(activeSeries);
   const stats = [
-    ["맞춘 개수", document.getElementById("resultCorrect").textContent],
-    ["문항 수", document.getElementById("resultTotal").textContent],
-    ["난이도", document.getElementById("resultDifficulty").textContent]
+    [t("correctCount"), document.getElementById("resultCorrect").textContent],
+    [t("totalQuestions"), document.getElementById("resultTotal").textContent],
+    [t("resultDifficulty"), document.getElementById("resultDifficulty").textContent]
   ];
 
   ctx.imageSmoothingEnabled = true;
@@ -437,7 +889,7 @@ async function createResultCanvas() {
   setFittedCanvasFont(ctx, message, 760, isPerfect ? 900 : 850, 74, 50);
   drawTrackedCenteredText(ctx, message, size / 2, 270, message.length <= 4 ? -4 : -1.5);
 
-  drawScoreLine(ctx, percent, "점", size / 2, 468, colors);
+  drawScoreLine(ctx, percent, t("scoreUnit"), size / 2, 468, colors);
 
   ctx.fillStyle = colors.muted;
   ctx.font = `800 34px ${appFontStack}`;
@@ -469,7 +921,7 @@ async function createResultCanvas() {
   ctx.fillStyle = colors.muted;
   ctx.font = `700 24px ${appFontStack}`;
   ctx.textBaseline = "alphabetic";
-  ctx.fillText("Personal Color Quiz", size / 2, 982);
+  ctx.fillText(t("canvasFooter"), size / 2, 982);
   return canvas;
 }
 
@@ -513,40 +965,67 @@ function drawResultSeriesCanvas(ctx, options) {
   const { x, y, width, height, activeSeries, seriesIconImages, colors } = options;
   drawRoundRect(ctx, x, y, width, height, 28, colors.chipSoft);
 
+  const metrics = getSeriesCanvasLayout(ctx, activeSeries, width, height);
+
   ctx.fillStyle = colors.muted;
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
-  ctx.font = `800 26px ${appFontStack}`;
-  ctx.fillText("시리즈", x + width / 2, y + 44);
+  ctx.font = `800 ${metrics.titleFontSize}px ${appFontStack}`;
+  ctx.fillText(t("series"), x + width / 2, y + metrics.titleBaseline);
 
-  const rows = makeSeriesPillRows(ctx, activeSeries, width - 64, 16);
-  const pillHeight = 52;
-  const rowGap = 16;
-  const totalRowsHeight = rows.length * pillHeight + Math.max(0, rows.length - 1) * rowGap;
-  const listTop = y + 74 + Math.max(0, (height - 100 - totalRowsHeight) / 2);
+  const rows = metrics.rows;
+  const totalRowsHeight = rows.length * metrics.pillHeight + Math.max(0, rows.length - 1) * metrics.rowGap;
+  const availableHeight = height - metrics.listTop - metrics.bottomPadding;
+  const listTop = y + metrics.listTop + Math.max(0, (availableHeight - totalRowsHeight) / 2);
 
   rows.forEach((row, rowIndex) => {
     const rowWidth = row.reduce((sum, series, index) => (
-      sum + getSeriesCanvasPillWidth(ctx, series) + (index > 0 ? 16 : 0)
+      sum + getSeriesCanvasPillWidth(ctx, series, metrics) + (index > 0 ? metrics.gap : 0)
     ), 0);
     let cursorX = x + (width - rowWidth) / 2;
-    const pillY = listTop + rowIndex * (pillHeight + rowGap);
+    const pillY = listTop + rowIndex * (metrics.pillHeight + metrics.rowGap);
 
     row.forEach((series) => {
-      const pillWidth = getSeriesCanvasPillWidth(ctx, series);
-      drawSeriesCanvasPill(ctx, cursorX, pillY, pillWidth, pillHeight, series, seriesIconImages[series], colors);
-      cursorX += pillWidth + 16;
+      const pillWidth = getSeriesCanvasPillWidth(ctx, series, metrics);
+      drawSeriesCanvasPill(ctx, cursorX, pillY, pillWidth, metrics.pillHeight, series, seriesIconImages[series], colors, metrics);
+      cursorX += pillWidth + metrics.gap;
     });
   });
 }
 
-function makeSeriesPillRows(ctx, seriesValues, maxWidth, gap) {
-  if (seriesValues.length === 4) {
-    return [seriesValues.slice(0, 2), seriesValues.slice(2, 4)];
+function getSeriesCanvasLayout(ctx, seriesValues, width, height) {
+  const variants = [
+    { fontSize: 28, titleFontSize: 26, pillHeight: 52, rowGap: 16, gap: 16, padX: 18, badgeWidth: 42, badgeHeight: 32, badgeGap: 12, listTop: 74, bottomPadding: 24 },
+    { fontSize: 26, titleFontSize: 25, pillHeight: 48, rowGap: 12, gap: 12, padX: 16, badgeWidth: 38, badgeHeight: 30, badgeGap: 10, listTop: 70, bottomPadding: 22 },
+    { fontSize: 24, titleFontSize: 24, pillHeight: 44, rowGap: 10, gap: 10, padX: 14, badgeWidth: 34, badgeHeight: 28, badgeGap: 9, listTop: 66, bottomPadding: 22 },
+    { fontSize: 22, titleFontSize: 23, pillHeight: 40, rowGap: 8, gap: 8, padX: 12, badgeWidth: 31, badgeHeight: 25, badgeGap: 8, listTop: 64, bottomPadding: 20 }
+  ];
+  const maxWidth = width - 48;
+
+  for (const metrics of variants) {
+    const rows = makeSeriesPillRows(ctx, seriesValues, maxWidth, metrics);
+    const rowsHeight = rows.length * metrics.pillHeight + Math.max(0, rows.length - 1) * metrics.rowGap;
+    if (rowsHeight <= height - metrics.listTop - metrics.bottomPadding) {
+      return {
+        ...metrics,
+        titleBaseline: Math.min(44, metrics.listTop - 24),
+        rows
+      };
+    }
   }
 
-  if (seriesValues.length === 5) {
-    return [seriesValues.slice(0, 3), seriesValues.slice(3, 5)];
+  const fallback = variants[variants.length - 1];
+  return {
+    ...fallback,
+    titleBaseline: Math.min(44, fallback.listTop - 24),
+    rows: makeSeriesPillRows(ctx, seriesValues, maxWidth, fallback)
+  };
+}
+
+function makeSeriesPillRows(ctx, seriesValues, maxWidth, metrics) {
+  const preferredRows = makePreferredSeriesRows(seriesValues);
+  if (preferredRows && preferredRows.every((row) => getSeriesCanvasRowWidth(ctx, row, metrics) <= maxWidth)) {
+    return preferredRows;
   }
 
   const rows = [];
@@ -554,8 +1033,8 @@ function makeSeriesPillRows(ctx, seriesValues, maxWidth, gap) {
   let rowWidth = 0;
 
   seriesValues.forEach((series) => {
-    const pillWidth = getSeriesCanvasPillWidth(ctx, series);
-    const nextWidth = rowWidth + (row.length ? gap : 0) + pillWidth;
+    const pillWidth = getSeriesCanvasPillWidth(ctx, series, metrics);
+    const nextWidth = rowWidth + (row.length ? metrics.gap : 0) + pillWidth;
     if (row.length && nextWidth > maxWidth) {
       rows.push(row);
       row = [series];
@@ -571,7 +1050,29 @@ function makeSeriesPillRows(ctx, seriesValues, maxWidth, gap) {
   return rows.length ? rows : [[]];
 }
 
-function drawSeriesCanvasPill(ctx, x, y, width, height, series, iconImage, colors) {
+function makePreferredSeriesRows(seriesValues) {
+  if (seriesValues.length === 4) {
+    return [seriesValues.slice(0, 2), seriesValues.slice(2, 4)];
+  }
+
+  if (seriesValues.length === 5) {
+    return [seriesValues.slice(0, 3), seriesValues.slice(3, 5)];
+  }
+
+  if (seriesValues.length === 6) {
+    return [seriesValues.slice(0, 3), seriesValues.slice(3, 6)];
+  }
+
+  return null;
+}
+
+function getSeriesCanvasRowWidth(ctx, row, metrics) {
+  return row.reduce((sum, series, index) => (
+    sum + getSeriesCanvasPillWidth(ctx, series, metrics) + (index > 0 ? metrics.gap : 0)
+  ), 0);
+}
+
+function drawSeriesCanvasPill(ctx, x, y, width, height, series, iconImage, colors, metrics) {
   ctx.save();
   ctx.shadowColor = "rgba(20, 24, 40, 0.08)";
   ctx.shadowBlur = 10;
@@ -579,21 +1080,21 @@ function drawSeriesCanvasPill(ctx, x, y, width, height, series, iconImage, color
   drawRoundRect(ctx, x, y, width, height, 18, colors.pill);
   ctx.restore();
 
-  const badgeSize = { width: 42, height: 32 };
-  const badgeX = x + 18;
+  const badgeSize = { width: metrics.badgeWidth, height: metrics.badgeHeight };
+  const badgeX = x + metrics.padX;
   const badgeY = y + (height - badgeSize.height) / 2;
   drawSeriesCanvasBadge(ctx, badgeX, badgeY, badgeSize.width, badgeSize.height, series, iconImage);
 
   ctx.fillStyle = colors.text;
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
-  ctx.font = `900 28px ${appFontStack}`;
-  ctx.fillText(seriesLabels[series], badgeX + badgeSize.width + 12, y + height / 2 + 1);
+  ctx.font = `900 ${metrics.fontSize}px ${appFontStack}`;
+  ctx.fillText(getSeriesLabel(series), badgeX + badgeSize.width + metrics.badgeGap, y + height / 2 + 1);
 }
 
-function getSeriesCanvasPillWidth(ctx, series) {
-  ctx.font = `900 28px ${appFontStack}`;
-  return Math.ceil(18 + 42 + 12 + ctx.measureText(seriesLabels[series]).width + 18);
+function getSeriesCanvasPillWidth(ctx, series, metrics) {
+  ctx.font = `900 ${metrics.fontSize}px ${appFontStack}`;
+  return Math.ceil(metrics.padX + metrics.badgeWidth + metrics.badgeGap + ctx.measureText(getSeriesLabel(series)).width + metrics.padX);
 }
 
 function drawSeriesCanvasBadge(ctx, x, y, width, height, series, iconImage) {
@@ -630,11 +1131,12 @@ function drawSeriesCanvasBadge(ctx, x, y, width, height, series, iconImage) {
 
 function getSeriesCanvasColors(series) {
   return {
-    allstars: { from: "#ff6f8b", to: "#f24a70" },
-    million: { from: "#ffd84c", to: "#f4b51e" },
+    allstars: { from: "#ff7894", to: "#f34f6d" },
+    million: { from: "#ffdc64", to: "#ffc30b" },
+    cinderella: { from: "#5aaee8", to: "#2681c8" },
     shiny: { from: "#ff7db7", to: "#7ac7ff" },
-    gakuen: { from: "#ffb13b", to: "#f47a2a" },
-    cinderella: { from: "#5fb5ff", to: "#3f76e8" }
+    gakuen: { from: "#ffc052", to: "#f39800" },
+    sidem: { from: "#5be5c8", to: "#0fbe94" }
   }[series] || { from: "#8db7ff", to: "#6f9ff2" };
 }
 
@@ -642,9 +1144,10 @@ function getSeriesFallbackMark(series) {
   return {
     allstars: "AS",
     million: "MS",
+    cinderella: "CG",
     shiny: "SC",
     gakuen: "G",
-    cinderella: "CG"
+    sidem: "SM"
   }[series] || "@";
 }
 
@@ -754,6 +1257,7 @@ function resetGame() {
   state.index = 0;
   state.correct = 0;
   state.locked = false;
+  state.currentAnswerFeedback = null;
   nextButton.hidden = true;
   resultPreview.hidden = true;
   resultPreviewImage.removeAttribute("src");
@@ -820,8 +1324,8 @@ function getActiveSeriesValues(values = getSelectedSeriesValues()) {
 }
 
 function getSeriesLabelFromValues(values = getSelectedSeriesValues()) {
-  if (values.includes("all") || values.length === seriesOrder.length) return seriesLabels.all;
-  return values.map((value) => seriesLabels[value]).join(" + ");
+  if (values.includes("all") || values.length === seriesOrder.length) return getSeriesLabel("all");
+  return values.map((value) => getSeriesLabel(value)).join(" + ");
 }
 
 function renderStartSeries(values = getSelectedSeriesValues()) {
@@ -854,7 +1358,7 @@ function renderSeriesItems(container, values, itemClassName) {
 
     const name = document.createElement("span");
     name.className = itemClassName === "result-series-item" ? "result-series-name" : "pool-series-name";
-    name.textContent = seriesLabels[series];
+    name.textContent = getSeriesLabel(series);
 
     item.append(iconBadge, name);
     container.appendChild(item);
@@ -865,14 +1369,23 @@ function getSeriesBadgeClass(series) {
   return {
     allstars: "allstars",
     million: "millionstars",
+    cinderella: "cinderella",
     shiny: "shinycolors",
     gakuen: "gakuen",
-    cinderella: "cinderella"
+    sidem: "sidem"
   }[series] || series;
 }
 
 function getAttributeLabel(attribute) {
-  return attributeLabels[attribute] || attribute;
+  return localizedAttributeLabels[state.language]?.[attribute] || attributeLabels[attribute] || attribute;
+}
+
+function getSeriesLabel(series) {
+  return localizedSeriesLabels[state.language]?.[series] || seriesLabels[series] || series;
+}
+
+function getDifficultyLabel(difficulty) {
+  return localizedDifficultyLabels[state.language]?.[difficulty] || difficultyLabels[difficulty] || difficulty;
 }
 
 function getPool() {
@@ -886,8 +1399,8 @@ function updateStartSummary() {
   const count = getQuestionCountValue(poolSize);
   questionCountInput.max = String(poolSize);
   renderStartSeries();
-  poolTitle.textContent = `총 ${poolSize}명`;
-  poolMeta.textContent = `${count}문항 · ${difficultyLabels[difficulty]}`;
+  poolTitle.textContent = t("totalPeople", poolSize);
+  poolMeta.textContent = t("poolMeta", count, getDifficultyLabel(difficulty));
 }
 
 function normalizeQuestionCount(poolSize = getPool().length) {
@@ -947,11 +1460,43 @@ function updatePresetSelection(activeButton = null) {
 function setQuestionImage(question) {
   imageFrame.classList.remove("is-missing");
   imageFallback.style.background = makeFallbackBackground(question.hex);
-  fallbackName.textContent = question.name;
-  characterImage.alt = `${question.name} 일러스트`;
+  updateQuestionImageText(question);
   characterImage.onload = () => imageFrame.classList.remove("is-missing");
   characterImage.onerror = () => imageFrame.classList.add("is-missing");
   characterImage.src = question.image;
+}
+
+function updateQuestionImageText(question) {
+  const displayName = getIdolDisplayName(question);
+  fallbackName.textContent = displayName;
+  characterImage.alt = t("illustrationAlt", displayName);
+}
+
+function updateSwatchAriaLabels() {
+  [...swatches.children].forEach((button, index) => {
+    button.setAttribute("aria-label", t("swatchLabel", index + 1));
+  });
+}
+
+function getIdolDisplayName(idol) {
+  if (state.language === "jp") return idol.jpName || idol.name;
+  if (state.language === "en") return getRomanizedIdolName(idol);
+  return idol.name;
+}
+
+function getIdolMetaName(idol) {
+  if (state.language === "jp") return getRomanizedIdolName(idol);
+  if (state.language === "en") return idol.jpName || idol.name;
+  return idol.jpName || idol.name;
+}
+
+function getRomanizedIdolName(idol) {
+  const fileName = String(idol.image || "").split("/").pop()?.replace(/\.[^.]+$/, "") || "";
+  const readableName = fileName
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+    .trim();
+  return readableName || idol.name || idol.jpName;
 }
 
 function preloadUpcomingImages() {
@@ -1304,12 +1849,13 @@ function makeFallbackBackground(hex) {
 }
 
 function getResultMessage(percent) {
-  if (percent === 100) return "당신이 아이돌마스터";
-  if (percent >= 80) return "@틀딱";
-  if (percent >= 60) return "@청년";
-  if (percent >= 40) return "@민이";
-  if (percent >= 11) return "놀안분?";
-  return "ㅁㅎ";
+  const messages = (translations[state.language] || translations.kr).resultMessages;
+  if (percent === 100) return messages.perfect;
+  if (percent >= 80) return messages.great;
+  if (percent >= 60) return messages.good;
+  if (percent >= 40) return messages.fair;
+  if (percent >= 11) return messages.low;
+  return messages.zero;
 }
 
 function shuffle(items) {

@@ -3,23 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>아이돌마스터 퍼스널 컬러 맞추기</title>
+  <title>아이돌마스터 이미지 컬러 맞추기</title>
   <link rel="icon" href="favicon.ico" sizes="any">
   <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
   <!-- style.css contains the full UI styling that used to live in the inline <style> block. -->
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=1.1">
 </head>
 <body>
   <main class="app">
     <section class="screen is-active" id="startScreen">
       <header class="app-header">
         <div class="title-block">
-          <div class="eyebrow">THE IDOLM@STER</div>
-          <h1>퍼스널 컬러 맞추기</h1>
+          <h1>
+            <span id="brandTitle">THE IDOLM@STER</span>
+            <span id="mainTitle">이미지 컬러 맞추기</span>
+          </h1>
         </div>
         <div class="header-actions">
+          <div class="language-toggle" role="group" aria-label="Language">
+            <button class="language-button is-selected" type="button" data-language="kr" aria-pressed="true">
+              <span class="language-flag flag-kr" aria-hidden="true"></span>
+              <span class="language-code">KR</span>
+            </button>
+            <button class="language-button" type="button" data-language="jp" aria-pressed="false">
+              <span class="language-flag flag-jp" aria-hidden="true"></span>
+              <span class="language-code">JP</span>
+            </button>
+            <button class="language-button" type="button" data-language="en" aria-pressed="false">
+              <span class="language-flag flag-en" aria-hidden="true"></span>
+              <span class="language-code">EN</span>
+            </button>
+          </div>
           <button class="theme-toggle" id="themeToggle" type="button" aria-label="다크모드로 전환" aria-pressed="false">
             <span class="theme-icon theme-icon-sun" aria-hidden="true">☀</span>
             <span class="theme-toggle-track" aria-hidden="true">
@@ -53,10 +69,13 @@
                   <span class="series-logo-badge gakuen">
                     <img class="series-icon-img" src="assets/icons/gakuen.svg" alt="">
                   </span>
+                  <span class="series-logo-badge sidem">
+                    <img class="series-icon-img" src="assets/icons/sidem.svg" alt="">
+                  </span>
                 </span>
                 <strong>전체</strong>
               </span>
-              <span>283명</span>
+              <span>332명</span>
             </label>
             <label class="choice-label">
               <input type="checkbox" name="series" value="allstars">
@@ -118,6 +137,18 @@
               </span>
               <span>13명</span>
             </label>
+            <label class="choice-label">
+              <input type="checkbox" name="series" value="sidem">
+              <span class="group-choice-main">
+                <span class="group-icons">
+                  <span class="series-logo-badge sidem">
+                    <img class="series-icon-img" src="assets/icons/sidem.svg" alt="">
+                  </span>
+                </span>
+                <strong>SideM</strong>
+              </span>
+              <span>49명</span>
+            </label>
           </div>
         </fieldset>
 
@@ -131,7 +162,7 @@
             </div>
             <div class="number-field">
               <label for="questionCount">직접 입력</label>
-              <input id="questionCount" type="text" inputmode="numeric" pattern="[0-9]*" max="283" value="5">
+              <input id="questionCount" type="text" inputmode="numeric" pattern="[0-9]*" max="332" value="5">
             </div>
           </div>
         </section>
@@ -166,12 +197,28 @@
           </div>
           <div class="pool-series-list" id="poolSeriesList" aria-label="선택한 시리즈"></div>
           <div class="pool-meta-row">
-            <strong id="poolTitle">총 283명</strong>
+            <strong id="poolTitle">총 332명</strong>
             <span id="poolMeta">5문항 · Normal</span>
           </div>
         </div>
         <button class="primary-button" id="startButton" type="button">게임 시작</button>
       </div>
+      <footer class="source-note" aria-label="자료 출처">
+        <span class="source-title" id="sourceNoteTitle">출처</span>
+        <span class="source-group">
+          <strong id="hexSourceLabel">HEX</strong>
+          <a href="https://imas-db.jp/misc/color.html" target="_blank" rel="noopener">imas-db</a>
+        </span>
+        <span class="source-group source-group-images">
+          <strong id="imageSourceLabel">이미지</strong>
+          <a href="https://imas.gamedbs.jp/mlth/" target="_blank" rel="noopener">765PRO ALLSTARS</a>
+          <a href="https://imas.gamedbs.jp/mlth/" target="_blank" rel="noopener">Million Live</a>
+          <a href="https://idolmaster-official.jp/cinderellagirls" target="_blank" rel="noopener">Cinderella Girls</a>
+          <a href="https://shinycolors.idolmaster.jp/" target="_blank" rel="noopener">Shiny Colors</a>
+          <a href="https://gakuen.idolmaster-official.jp/" target="_blank" rel="noopener">Gakuen</a>
+          <a href="https://idolmaster-official.jp/sidem/" target="_blank" rel="noopener">SideM</a>
+        </span>
+      </footer>
     </section>
 
     <section class="screen" id="quizScreen" aria-live="polite">
@@ -221,7 +268,7 @@
         <div class="result-main">
           <div class="eyebrow">RESULT</div>
           <h2 id="resultMessage">완료</h2>
-          <div class="score-number"><span id="scorePercent">0</span>점</div>
+          <div class="score-number"><span id="scorePercent">0</span><span id="scoreUnit">점</span></div>
           <p class="subtitle" id="scoreSummary">0 / 0 정답</p>
         </div>
         <div class="result-side">
@@ -257,9 +304,15 @@
     </section>
   </main>
 
-  <!-- data.js must load first because script.js reads window.IdolmasterQuizData. -->
-  <script src="data.js"></script>
+  <!-- Series data files register themselves before data.js builds the combined quiz data. -->
+  <script src="data/series/allstars.js?v=1.1"></script>
+  <script src="data/series/million.js?v=1.1"></script>
+  <script src="data/series/cinderella.js?v=1.1"></script>
+  <script src="data/series/shiny.js?v=1.1"></script>
+  <script src="data/series/gakuen.js?v=1.1"></script>
+  <script src="data/series/sidem.js?v=1.1"></script>
+  <script src="data.js?v=1.1"></script>
   <!-- script.js wires the UI events and game flow after the data is ready. -->
-  <script src="script.js"></script>
+  <script src="script.js?v=1.1"></script>
 </body>
 </html>
