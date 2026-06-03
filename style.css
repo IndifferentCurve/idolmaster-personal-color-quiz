@@ -2246,11 +2246,18 @@
     }
 
     .result-series-list {
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .result-series-row {
       display: flex;
-      flex-wrap: wrap;
       justify-content: center;
       align-items: center;
-      gap: 10px 12px;
+      gap: 12px;
       width: 100%;
       min-width: 0;
     }
@@ -2260,7 +2267,8 @@
       align-items: center;
       justify-content: center;
       gap: 9px;
-      min-width: 0;
+      flex: 0 0 auto;
+      min-width: max-content;
       max-width: 100%;
       padding: 8px 12px;
       border-radius: 14px;
@@ -2269,6 +2277,7 @@
       font-weight: 900;
       line-height: 1.25;
       text-align: left;
+      white-space: nowrap;
     }
 
     .result-series-item .series-logo-badge {
@@ -2286,8 +2295,9 @@
     }
 
     .result-series-name {
-      min-width: 0;
-      overflow-wrap: anywhere;
+      min-width: max-content;
+      white-space: nowrap;
+      overflow-wrap: normal;
       word-break: keep-all;
       line-height: 1.2;
     }

@@ -1664,6 +1664,7 @@ function renderSeriesItems(container, values, itemClassName) {
   const activeSeries = getActiveSeriesValues(values);
   container.innerHTML = "";
   container.dataset.summary = getSeriesLabelFromValues(values);
+  container.dataset.count = String(activeSeries.length);
 
   if (!activeSeries.length) {
     const empty = document.createElement("div");
@@ -1673,7 +1674,24 @@ function renderSeriesItems(container, values, itemClassName) {
     return;
   }
 
+  if (itemClassName === "result-series-item") {
+    for (let index = 0; index < activeSeries.length; index += 2) {
+      const row = document.createElement("div");
+      row.className = "result-series-row";
+      activeSeries.slice(index, index + 2).forEach((series) => {
+        row.appendChild(createSeriesSummaryItem(series, itemClassName));
+      });
+      container.appendChild(row);
+    }
+    return;
+  }
+
   activeSeries.forEach((series) => {
+    container.appendChild(createSeriesSummaryItem(series, itemClassName));
+  });
+}
+
+function createSeriesSummaryItem(series, itemClassName) {
     const item = document.createElement("div");
     item.className = `${itemClassName} series-summary-item`;
 
@@ -1684,8 +1702,7 @@ function renderSeriesItems(container, values, itemClassName) {
     name.textContent = getSeriesLabel(series);
 
     item.append(iconBadge, name);
-    container.appendChild(item);
-  });
+    return item;
 }
 
 function getSeriesBadgeClass(series) {
