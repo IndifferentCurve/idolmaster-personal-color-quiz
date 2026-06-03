@@ -41,6 +41,7 @@ const questionCountInput = document.getElementById("questionCount");
 const questionCountField = questionCountInput.closest(".number-field");
 const poolTitle = document.getElementById("poolTitle");
 const poolMeta = document.getElementById("poolMeta");
+const poolSeriesList = document.getElementById("poolSeriesList");
 const startButton = document.getElementById("startButton");
 const progressText = document.getElementById("progressText");
 const progressBar = document.getElementById("progressBar");
@@ -100,6 +101,18 @@ document.querySelectorAll("input[name='difficulty']").forEach((input) => {
 document.querySelectorAll(".count-preset").forEach((button) => {
   button.addEventListener("click", () => {
     const poolSize = getPool().length;
+    const wasSelected = button.classList.contains("is-selected");
+
+    if (wasSelected) {
+      const currentValue = getQuestionCountValue(poolSize);
+      state.countMode = "manual";
+      state.requestedQuestionCount = currentValue;
+      questionCountInput.value = String(currentValue);
+      updatePresetSelection();
+      updateStartSummary();
+      return;
+    }
+
     const nextValue = button.dataset.count === "all" ? poolSize : Number(button.dataset.count);
     state.countMode = button.dataset.count === "all" ? "all" : "preset";
     state.requestedQuestionCount = button.dataset.count === "all" ? null : nextValue;
@@ -245,13 +258,13 @@ function judgeAnswer(button, choice, question) {
   if (isCorrect) {
     state.correct += 1;
     button.classList.add("is-answer");
-    answerNote.innerHTML = `<span class="answer-chip"><span class="mini-chip" style="background:${question.hex}"></span>정답은 ${question.hex}</span>`;
   } else {
     button.classList.add("is-wrong");
     const answerButton = [...swatches.children].find((item) => item.dataset.hex === question.hex.toLowerCase());
     if (answerButton) answerButton.classList.add("is-answer");
-    answerNote.innerHTML = `<span class="answer-chip"><span class="mini-chip" style="background:${question.hex}"></span>정답은 ${question.hex}</span>`;
   }
+
+  renderAnswerNote(isCorrect, question.hex, choice.hex);
 
   feedbackMark.textContent = isCorrect ? "O" : "X";
   feedback.className = `feedback is-visible ${isCorrect ? "is-correct" : "is-wrong"}`;
@@ -263,6 +276,34 @@ function judgeAnswer(button, choice, question) {
   nextButton.textContent = state.index + 1 >= state.questions.length ? "결과 보기" : "확인";
   nextButton.hidden = false;
   nextButton.focus();
+}
+
+function renderAnswerNote(isCorrect, answerHex, selectedHex) {
+  const answer = formatHex(answerHex);
+  const selected = formatHex(selectedHex);
+  const statusClass = isCorrect ? "is-correct" : "is-wrong";
+  const statusText = isCorrect ? "정답" : "오답";
+  const selectedLine = isCorrect ? "" : `
+    <span class="answer-chip is-selected-color">
+      <span class="mini-chip" style="background:${selected}"></span>
+      선택 ${selected}
+    </span>
+  `;
+
+  answerNote.innerHTML = `
+    <div class="answer-result ${statusClass}">${statusText}</div>
+    <div class="answer-note-lines">
+      ${selectedLine}
+      <span class="answer-chip is-answer-color">
+        <span class="mini-chip" style="background:${answer}"></span>
+        정답 ${answer}
+      </span>
+    </div>
+  `;
+}
+
+function formatHex(hex) {
+  return String(hex).trim().toUpperCase();
 }
 
 function setProgress(ratio) {
@@ -776,15 +817,23 @@ function getSeriesLabelFromValues(values = getSelectedSeriesValues()) {
   return values.map((value) => seriesLabels[value]).join(" + ");
 }
 
+function renderStartSeries(values = getSelectedSeriesValues()) {
+  renderSeriesItems(poolSeriesList, values, "pool-series-item");
+}
+
 function renderResultSeries(values = getSelectedSeriesValues()) {
   const resultGroup = document.getElementById("resultGroup");
+  renderSeriesItems(resultGroup, values, "result-series-item");
+}
+
+function renderSeriesItems(container, values, itemClassName) {
   const activeSeries = getActiveSeriesValues(values);
-  resultGroup.innerHTML = "";
-  resultGroup.dataset.summary = getSeriesLabelFromValues(values);
+  container.innerHTML = "";
+  container.dataset.summary = getSeriesLabelFromValues(values);
 
   activeSeries.forEach((series) => {
     const item = document.createElement("div");
-    item.className = "result-series-item";
+    item.className = `${itemClassName} series-summary-item`;
 
     const iconBadge = document.createElement("span");
     iconBadge.className = `series-logo-badge ${getSeriesBadgeClass(series)}`;
@@ -797,11 +846,11 @@ function renderResultSeries(values = getSelectedSeriesValues()) {
     iconBadge.appendChild(icon);
 
     const name = document.createElement("span");
-    name.className = "result-series-name";
+    name.className = itemClassName === "result-series-item" ? "result-series-name" : "pool-series-name";
     name.textContent = seriesLabels[series];
 
     item.append(iconBadge, name);
-    resultGroup.appendChild(item);
+    container.appendChild(item);
   });
 }
 
@@ -828,7 +877,8 @@ function updateStartSummary() {
   const difficulty = document.querySelector("input[name='difficulty']:checked")?.value || state.difficulty;
   const count = getQuestionCountValue(poolSize);
   questionCountInput.max = String(poolSize);
-  poolTitle.textContent = `${getSeriesLabelFromValues()} ${poolSize}명`;
+  renderStartSeries();
+  poolTitle.textContent = `총 ${poolSize}명`;
   poolMeta.textContent = `${count}문항 · ${difficultyLabels[difficulty]}`;
 }
 
@@ -897,7 +947,8 @@ function setQuestionImage(question) {
 }
 
 function generateDistractors(question, difficulty) {
-  const targetDistractorCount = 5;
+  const settings = getDifficultyChoiceSettings(difficulty);
+  const targetDistractorCount = settings.distractorCount;
   const correctHex = question.hex.toLowerCase();
   const base = question.hsl;
   const distanceRules = getVisualDistanceRules(difficulty);
@@ -916,7 +967,9 @@ function generateDistractors(question, difficulty) {
     return false;
   };
 
-  addHairTrapColor(question, addColor);
+  if (settings.useHairTrap) {
+    addHairTrapColor(question, addColor);
+  }
 
   if (difficulty === "easy") {
     fillGenerated(colors, targetDistractorCount, () => {
@@ -927,18 +980,43 @@ function generateDistractors(question, difficulty) {
     }, addColor);
   } else if (difficulty === "normal") {
     fillGenerated(colors, targetDistractorCount, () => {
-      const hueShift = randomBetween(20, 30) * randomSign();
-      const saturationShift = randomBetween(12, 24) * randomSign();
-      const lightnessShift = randomBetween(10, 18) * randomSign();
+      const hueShift = randomBetween(30, 44) * randomSign();
+      const saturationShift = randomBetween(12, 22) * randomSign();
+      const lightnessShift = randomBetween(12, 22) * randomSign();
       return hslToHex(
         base.h + hueShift,
         clamp(base.s + saturationShift, 18, 94),
         clamp(base.l + lightnessShift, 18, 88)
       );
     }, addColor);
+  } else if (difficulty === "hard") {
+    fillGenerated(colors, targetDistractorCount, () => {
+      const mode = ["hue", "tone", "mixed"][Math.floor(Math.random() * 3)];
+      const hueShift = randomBetween(14, 24) * randomSign();
+      const saturationShift = randomBetween(8, 18) * randomSign();
+      const lightnessShift = randomBetween(8, 16) * randomSign();
+
+      if (mode === "hue") {
+        return hslToHex(base.h + hueShift, base.s, base.l);
+      }
+
+      if (mode === "tone") {
+        return hslToHex(
+          base.h,
+          clamp(base.s + saturationShift, 10, 96),
+          clamp(base.l + lightnessShift, 14, 92)
+        );
+      }
+
+      return hslToHex(
+        base.h + hueShift,
+        clamp(base.s + saturationShift, 10, 96),
+        clamp(base.l + lightnessShift, 14, 92)
+      );
+    }, addColor);
   } else {
     let realTrapCount = 0;
-    const realTrapTarget = randomInteger(1, 2);
+    const realTrapTarget = 2;
     closestRealColors(question, 8).forEach((hex) => {
       if (realTrapCount < realTrapTarget && addColor(hex)) {
         realTrapCount += 1;
@@ -947,9 +1025,9 @@ function generateDistractors(question, difficulty) {
 
     fillGenerated(colors, targetDistractorCount, () => {
       const mode = ["hue", "tone", "mixed"][Math.floor(Math.random() * 3)];
-      const hueShift = randomBetween(6, 12) * randomSign();
-      const saturationShift = randomBetween(6, 12) * randomSign();
-      const lightnessShift = randomBetween(6, 12) * randomSign();
+      const hueShift = randomBetween(5, 10) * randomSign();
+      const saturationShift = randomBetween(5, 10) * randomSign();
+      const lightnessShift = randomBetween(5, 10) * randomSign();
 
       if (mode === "hue") {
         return hslToHex(base.h + hueShift, base.s, base.l);
@@ -972,6 +1050,14 @@ function generateDistractors(question, difficulty) {
   }
 
   return [...colors].slice(0, targetDistractorCount);
+}
+
+function getDifficultyChoiceSettings(difficulty) {
+  if (difficulty === "easy") {
+    return { distractorCount: 4, useHairTrap: false };
+  }
+
+  return { distractorCount: 5, useHairTrap: true };
 }
 
 function addHairTrapColor(question, addColor) {
@@ -1058,10 +1144,14 @@ function getVisualDistanceRules(difficulty) {
   }
 
   if (difficulty === "normal") {
-    return { minFromAnswer: 19, minBetweenChoices: 12 };
+    return { minFromAnswer: 22, minBetweenChoices: 13 };
   }
 
-  return { minFromAnswer: 12, minBetweenChoices: 8, maxFromAnswer: 40 };
+  if (difficulty === "hard") {
+    return { minFromAnswer: 16, minBetweenChoices: 10, maxFromAnswer: 62 };
+  }
+
+  return { minFromAnswer: 11, minBetweenChoices: 8, maxFromAnswer: 36 };
 }
 
 function isVisuallyDistinctChoice(candidateHex, correctHex, selectedHexes, rules, relaxation = 0) {

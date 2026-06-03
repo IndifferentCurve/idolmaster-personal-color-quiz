@@ -133,13 +133,21 @@
               <input type="radio" name="difficulty" value="hard">
               <strong>Hard</strong>
             </label>
+            <label class="choice-label">
+              <input type="radio" name="difficulty" value="very-hard">
+              <strong>Very Hard</strong>
+            </label>
           </div>
         </fieldset>
       </div>
 
       <div class="start-actions">
         <div class="pool-summary">
-          <strong id="poolTitle">전체 93명</strong>
+          <div class="pool-summary-head">
+            <span class="pool-kicker">선택한 시리즈</span>
+            <strong id="poolTitle">총 93명</strong>
+          </div>
+          <div class="pool-series-list" id="poolSeriesList" aria-label="선택한 시리즈"></div>
           <span id="poolMeta">5문항 · Normal</span>
         </div>
         <button class="primary-button" id="startButton" type="button">게임 시작</button>
