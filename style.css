@@ -3076,8 +3076,12 @@
 
       .swatches {
         --swatch-size: clamp(46px, 13vw, 56px);
+        display: grid;
+        grid-template-columns: repeat(3, var(--swatch-size));
+        justify-content: center;
+        align-items: center;
         gap: clamp(9px, 2.8vw, 12px);
-        width: min(460px, 100%);
+        width: 100%;
       }
     }
 
