@@ -39,6 +39,12 @@ window.translations = {
     manualInput: "직접 입력",
     manualActive: "적용 중",
     difficulty: "난이도",
+    difficultyDescriptions: {
+      easy: "가벼운 워밍업",
+      normal: "스탠다드 모드",
+      hard: "도전적인 난이도",
+      "very-hard": "절대색감"
+    },
     selectedSeries: "선택한 시리즈",
     totalPeople: (count) => `총 ${count}명`,
     poolMeta: (count, difficulty) => `${count}문항 · ${difficulty}`,
@@ -121,6 +127,12 @@ window.translations = {
     manualInput: "直接入力",
     manualActive: "適用中",
     difficulty: "難易度",
+    difficultyDescriptions: {
+      easy: "ウォーミングアップ",
+      normal: "スタンダード",
+      hard: "観察力が試される",
+      "very-hard": "絶対色感向け"
+    },
     selectedSeries: "選択中のシリーズ",
     totalPeople: (count) => `全${count}人`,
     poolMeta: (count, difficulty) => `${count}問 · ${difficulty}`,
@@ -203,6 +215,12 @@ window.translations = {
     manualInput: "Custom",
     manualActive: "Active",
     difficulty: "Difficulty",
+    difficultyDescriptions: {
+      easy: "Warm-up",
+      normal: "Standard Mode",
+      hard: "Sharp Eyes Needed",
+      "very-hard": "Pixel Perfect"
+    },
     selectedSeries: "Selected Series",
     totalPeople: (count) => `${count} idols`,
     poolMeta: (count, difficulty) => `${count} questions · ${difficulty}`,

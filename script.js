@@ -540,8 +540,12 @@ function syncCountPresetLabels() {
 
 function syncDifficultyLabels() {
   document.querySelectorAll("input[name='difficulty']").forEach((input) => {
-    const strong = input.closest(".choice-label")?.querySelector("strong");
+    const label = input.closest(".choice-label");
+    const strong = label?.querySelector("strong");
     if (strong) strong.textContent = getDifficultyLabel(input.value);
+
+    const description = label?.querySelector(".difficulty-description");
+    if (description) description.textContent = getDifficultyDescription(input.value);
   });
 }
 
@@ -1750,6 +1754,10 @@ function getDifficultyLabel(difficulty) {
   return getDictionary().difficultyLabels?.[difficulty] || difficultyLabels[difficulty] || difficulty;
 }
 
+function getDifficultyDescription(difficulty) {
+  return getDictionary().difficultyDescriptions?.[difficulty] || translations.ko.difficultyDescriptions?.[difficulty] || "";
+}
+
 function getCustomPool() {
   return enrichedIdols.filter((idol) => state.customSelectedIds.has(idol.no));
 }
@@ -2287,7 +2295,7 @@ function generateDistractors(question, difficulty) {
   const targetDistractorCount = settings.distractorCount;
   const correctHex = question.hex.toLowerCase();
   const base = question.hsl;
-  const distanceRules = getVisualDistanceRules(difficulty);
+  const distanceRules = getVisualDistanceRules(difficulty, base);
   const colors = new Set();
 
   const addColor = (hex, relaxation = 0, rulesOverride = distanceRules) => {
@@ -2397,7 +2405,7 @@ function getDifficultyChoiceSettings(difficulty) {
 }
 
 function addHairTrapColor(question, addColor, difficulty) {
-  const hairTrapRules = getHairTrapDistanceRules(difficulty);
+  const hairTrapRules = getHairTrapDistanceRules(difficulty, question.hsl);
 
   for (let attempt = 0; attempt < 96; attempt += 1) {
     if (addColor(makeHairTrapColor(question, attempt), 0, hairTrapRules)) return true;
@@ -2446,8 +2454,11 @@ function makeHairTrapColor(question, attempt = 0) {
   return candidate;
 }
 
-function getHairTrapDistanceRules(difficulty) {
-  const { minFromAnswer, minBetweenChoices } = getVisualDistanceRules(difficulty);
+function getHairTrapDistanceRules(difficulty, answerHsl) {
+  const rules = getVisualDistanceRules(difficulty, answerHsl);
+  if (difficulty === "very-hard") return rules;
+
+  const { minFromAnswer, minBetweenChoices } = rules;
   return { minFromAnswer, minBetweenChoices };
 }
 
@@ -2490,20 +2501,54 @@ function closestRealColors(question, count) {
   return picked.map(({ idol }) => idol.hex);
 }
 
-function getVisualDistanceRules(difficulty) {
+function getVisualDistanceRules(difficulty, answerHsl = null) {
+  let rules;
+
   if (difficulty === "easy") {
-    return { minFromAnswer: 30, minBetweenChoices: 16 };
+    rules = { minFromAnswer: 30, minBetweenChoices: 16 };
+  } else if (difficulty === "normal") {
+    rules = { minFromAnswer: 22, minBetweenChoices: 13 };
+  } else if (difficulty === "hard") {
+    rules = { minFromAnswer: 18, minBetweenChoices: 11, maxFromAnswer: 66 };
+  } else {
+    rules = { minFromAnswer: 12, minBetweenChoices: 9, maxFromAnswer: 40 };
   }
 
-  if (difficulty === "normal") {
-    return { minFromAnswer: 22, minBetweenChoices: 13 };
+  return applyPrimaryColorDifficultyRelief(rules, difficulty, answerHsl);
+}
+
+function applyPrimaryColorDifficultyRelief(rules, difficulty, answerHsl) {
+  if (difficulty === "easy" || !isVividPrimaryColor(answerHsl)) return rules;
+
+  const reliefByDifficulty = {
+    normal: { minFromAnswer: 5, minBetweenChoices: 3 },
+    hard: { minFromAnswer: 3, minBetweenChoices: 2, maxFromAnswer: 6 },
+    "very-hard": { minFromAnswer: 2, minBetweenChoices: 1, maxFromAnswer: 4 }
+  };
+  const relief = reliefByDifficulty[difficulty] || reliefByDifficulty["very-hard"];
+  const adjusted = {
+    ...rules,
+    minFromAnswer: rules.minFromAnswer + relief.minFromAnswer,
+    minBetweenChoices: rules.minBetweenChoices + relief.minBetweenChoices
+  };
+
+  if (rules.maxFromAnswer) {
+    adjusted.maxFromAnswer = rules.maxFromAnswer + (relief.maxFromAnswer || 0);
   }
 
-  if (difficulty === "hard") {
-    return { minFromAnswer: 16, minBetweenChoices: 10, maxFromAnswer: 62 };
-  }
+  return adjusted;
+}
 
-  return { minFromAnswer: 11, minBetweenChoices: 8, maxFromAnswer: 36 };
+function isVividPrimaryColor(hsl) {
+  if (!hsl || hsl.s < 62 || hsl.l < 24 || hsl.l > 82) return false;
+
+  const primaryHues = [0, 60, 120, 180, 240, 300];
+  return primaryHues.some((primaryHue) => primaryHueDistance(hsl.h, primaryHue) <= 18);
+}
+
+function primaryHueDistance(a, b) {
+  const diff = Math.abs(a - b) % 360;
+  return Math.min(diff, 360 - diff);
 }
 
 function isVisuallyDistinctChoice(candidateHex, correctHex, selectedHexes, rules, relaxation = 0) {
