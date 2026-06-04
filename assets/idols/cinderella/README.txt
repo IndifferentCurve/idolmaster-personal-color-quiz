@@ -8,5 +8,7 @@
 기준:
 - 공식 아이돌 목록: https://cinderellagirls.idolmaster-official.jp/idol/
 - 스탠딩 이미지: 각 아이돌 개별 페이지의 IDOL 섹션에 표시되는 기본 전신 스탠딩 이미지
+- 영문명 매핑: THE iDOLM@STER Cinderella Girls Fandom Characters 목록의 영문 표기
+  https://idolmaster-cinderella-girls.fandom.com/wiki/Characters
 - 정렬: 엑셀과 manifest 모두 속성(큐트 → 쿨 → 패션) 후 색상순
 - 파일명: 공식 페이지 슬러그 기준

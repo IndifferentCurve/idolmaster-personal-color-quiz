@@ -53,6 +53,7 @@ http://localhost:8765/
 
 - HEX: [imas-db](https://imas-db.jp/misc/color.html)
 - 이미지: 각 시리즈 공식/참조 출처 및 `assets` 폴더의 README/manifest 파일 참고
+- 신데렐라 걸즈 영문명: [THE iDOLM@STER Cinderella Girls Fandom Characters](https://idolmaster-cinderella-girls.fandom.com/wiki/Characters)
 
 ### 안내
 
@@ -103,6 +104,7 @@ http://localhost:8765/
 
 - HEX: [imas-db](https://imas-db.jp/misc/color.html)
 - 画像: 各シリーズの公式/参考元、および `assets` フォルダ内の README/manifest を参照
+- シンデレラガールズ英語名: [THE iDOLM@STER Cinderella Girls Fandom Characters](https://idolmaster-cinderella-girls.fandom.com/wiki/Characters)
 
 ### 注意
 
@@ -153,6 +155,7 @@ http://localhost:8765/
 
 - HEX: [imas-db](https://imas-db.jp/misc/color.html)
 - Images: official/reference sources for each series and the README/manifest files inside `assets`
+- Cinderella Girls English names: [THE iDOLM@STER Cinderella Girls Fandom Characters](https://idolmaster-cinderella-girls.fandom.com/wiki/Characters)
 
 ### Notice
 

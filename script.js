@@ -2263,6 +2263,9 @@ function getIdolMetaName(idol) {
 }
 
 function getRomanizedIdolName(idol) {
+  const explicitName = idol.enName || idol.englishName;
+  if (explicitName) return explicitName;
+
   const fileName = String(idol.image || "").split("/").pop()?.replace(/\.[^.]+$/, "") || "";
   const readableName = fileName
     .replace(/[_-]+/g, " ")
