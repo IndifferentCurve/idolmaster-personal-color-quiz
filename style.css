@@ -714,11 +714,8 @@
 
     .series-logo-badge.shinycolors {
       --badge-wash:
-        radial-gradient(circle at 18% 22%, #ff8bc5 0 26%, transparent 45%),
-        radial-gradient(circle at 70% 18%, #7ed0ff 0 28%, transparent 48%),
-        radial-gradient(circle at 46% 82%, #b98cff 0 30%, transparent 50%),
-        linear-gradient(135deg, #ff7db7, #7ac7ff);
-      background: #b9a6ff;
+        linear-gradient(135deg, #ff7db7 0%, #7ac7ff 100%);
+      background: var(--badge-wash);
     }
 
     .series-logo-badge.gakuen {
@@ -1793,10 +1790,12 @@
       font-weight: 850;
     }
 
-    .quiz-difficulty-name {
-      color: var(--ink);
+    .quiz-difficulty-name,
+    #quizDifficultyName {
+      color: var(--choice-ink);
       font-size: 0.82rem;
-      font-weight: 950;
+      font-weight: 850;
+      font-family: inherit;
     }
 
     .stat {
@@ -3162,7 +3161,7 @@
       }
 
       .quiz-difficulty-name {
-        font-size: 0.8rem;
+        font-size: 0.79rem;
       }
 
       .secondary-button,
