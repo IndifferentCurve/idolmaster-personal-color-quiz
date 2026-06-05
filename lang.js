@@ -42,7 +42,7 @@ window.translations = {
     difficultyDescriptions: {
       easy: "가벼운 워밍업",
       normal: "스탠다드 모드",
-      hard: "도전적인 난이도",
+      hard: "도전적",
       "very-hard": "절대색감"
     },
     selectedSeries: "선택한 시리즈",

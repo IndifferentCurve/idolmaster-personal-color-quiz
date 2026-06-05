@@ -64,6 +64,9 @@ const progressText = document.getElementById("progressText");
 const progressBar = document.getElementById("progressBar");
 const comboBadge = document.getElementById("comboBadge");
 const scoreText = document.getElementById("scoreText");
+const quizDifficultyChip = document.getElementById("quizDifficultyChip");
+const quizDifficultyLabel = document.getElementById("quizDifficultyLabel");
+const quizDifficultyName = document.getElementById("quizDifficultyName");
 const imageFrame = document.getElementById("imageFrame");
 const quizStage = document.querySelector(".stage");
 const characterImage = document.getElementById("characterImage");
@@ -441,6 +444,7 @@ function applyLanguage(language, shouldStore = false) {
   homeButton.setAttribute("aria-label", t("backHomeLabel"));
   setText("#quizScreen .stat:first-child span", t("question"));
   setText("#quizScreen .stat:nth-child(2) span", t("correct"));
+  updateQuizDifficultyChip();
   setText(".result-main .eyebrow", t("resultEyebrow"));
   setText("#resultMessage", t("result"));
   setText(".result-side .panel-title", t("record"));
@@ -486,6 +490,7 @@ function refreshLocalizedScreen() {
     const question = state.questions[state.index];
     renderQuestionText(question);
     updateQuestionImageText(question);
+    updateQuizDifficultyChip();
     updateSwatchAriaLabels();
     updateComboBadge(false);
     if (state.currentAnswerFeedback) {
@@ -617,6 +622,7 @@ function startGame() {
   state.series = getSelectedSeriesValues();
   state.resultSeries = getSeriesValuesFromIdols(state.questions);
   showScreen("quiz");
+  updateQuizDifficultyChip();
   renderQuestion();
 }
 
@@ -629,6 +635,7 @@ function renderQuestion() {
   progressText.textContent = `${current} / ${total}`;
   setProgress((current - 1) / total);
   scoreText.textContent = String(state.correct);
+  updateQuizDifficultyChip();
   renderQuestionText(question);
   answerNote.innerHTML = "";
   feedback.className = "feedback";
@@ -773,15 +780,16 @@ function renderAnswerNote(isCorrect, answerHex, selectedHex) {
 
 function updateComboBadge(animate = false) {
   if (!comboBadge) return;
-  comboBadge.hidden = false;
 
   if (state.currentCombo < 2) {
+    comboBadge.hidden = true;
     comboBadge.textContent = "";
     comboBadge.setAttribute("aria-hidden", "true");
     comboBadge.classList.remove("is-visible", "is-popping");
     return;
   }
 
+  comboBadge.hidden = false;
   comboBadge.textContent = t("comboText", state.currentCombo);
   comboBadge.setAttribute("aria-hidden", "false");
   comboBadge.classList.add("is-visible");
@@ -791,6 +799,19 @@ function updateComboBadge(animate = false) {
     void comboBadge.offsetWidth;
     comboBadge.classList.add("is-popping");
   }
+}
+
+function updateQuizDifficultyChip() {
+  if (!quizDifficultyChip) return;
+
+  const difficultyLabel = getDifficultyLabel(state.difficulty);
+  setText(quizDifficultyLabel, t("difficulty"));
+  setText(quizDifficultyName, difficultyLabel);
+  quizDifficultyChip.dataset.difficulty = state.difficulty;
+  quizDifficultyChip.setAttribute(
+    "aria-label",
+    [t("difficulty"), difficultyLabel].filter(Boolean).join(" · ")
+  );
 }
 
 function triggerCorrectFeedback(button, answerHex) {

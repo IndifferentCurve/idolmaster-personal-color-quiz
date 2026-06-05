@@ -1734,6 +1734,71 @@
       align-items: center;
     }
 
+    .quiz-difficulty-chip {
+      --difficulty-tone: var(--accent);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      justify-self: center;
+      gap: 6px;
+      max-width: min(100%, 560px);
+      min-height: 28px;
+      margin-block: 0;
+      padding: 5px 12px;
+      border-radius: 999px;
+      background:
+        linear-gradient(135deg, color-mix(in srgb, var(--difficulty-tone) 18%, transparent), transparent 58%),
+        var(--surface-glass);
+      color: var(--ink);
+      box-shadow:
+        inset 0 0 0 1px color-mix(in srgb, var(--difficulty-tone) 26%, var(--chip-ring)),
+        0 8px 20px color-mix(in srgb, var(--difficulty-tone) 10%, transparent);
+      line-height: 1;
+      white-space: nowrap;
+      transition:
+        background-color 0.2s ease,
+        box-shadow 0.2s ease,
+        color 0.2s ease;
+    }
+
+    .quiz-difficulty-chip::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      flex: 0 0 auto;
+      border-radius: 999px;
+      background: var(--difficulty-tone);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--difficulty-tone) 16%, transparent);
+    }
+
+    .quiz-difficulty-chip[data-difficulty="easy"] {
+      --difficulty-tone: var(--teal);
+    }
+
+    .quiz-difficulty-chip[data-difficulty="normal"] {
+      --difficulty-tone: var(--accent);
+    }
+
+    .quiz-difficulty-chip[data-difficulty="hard"] {
+      --difficulty-tone: var(--gold);
+    }
+
+    .quiz-difficulty-chip[data-difficulty="very-hard"] {
+      --difficulty-tone: var(--pink);
+    }
+
+    .quiz-difficulty-label {
+      color: var(--muted);
+      font-size: 0.7rem;
+      font-weight: 850;
+    }
+
+    .quiz-difficulty-name {
+      color: var(--ink);
+      font-size: 0.82rem;
+      font-weight: 950;
+    }
+
     .stat {
       display: flex;
       flex-direction: column;
@@ -3082,6 +3147,22 @@
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
+      }
+
+      .quiz-difficulty-chip {
+        max-width: 100%;
+        min-height: 28px;
+        margin-block: 0;
+        padding: 5px 11px;
+        gap: 6px;
+      }
+
+      .quiz-difficulty-label {
+        font-size: 0.68rem;
+      }
+
+      .quiz-difficulty-name {
+        font-size: 0.8rem;
       }
 
       .secondary-button,
