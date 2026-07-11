@@ -9,7 +9,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
   <!-- style.css contains the full UI styling that used to live in the inline <style> block. -->
-  <link rel="stylesheet" href="style.css?v=2.0">
+  <link rel="stylesheet" href="style.css?v=2.1">
 </head>
 <body>
   <main class="app">
@@ -177,7 +177,7 @@
               <button class="ghost-button custom-action-button" id="customClearVisibleButton" type="button"></button>
               <button class="ghost-button custom-action-button is-danger" id="customResetButton" type="button"></button>
             </div>
-            <div class="custom-idol-grid" id="customIdolGrid" role="list"></div>
+            <div class="custom-idol-grid" id="customIdolGrid" role="group" aria-labelledby="customPanelTitle"></div>
           </div>
         </fieldset>
 
@@ -390,6 +390,6 @@
   <script src="data.js?v=1.1"></script>
   <script src="lang.js?v=1.6"></script>
   <!-- script.js wires the UI events and game flow after the data is ready. -->
-  <script src="script.js?v=2.0"></script>
+  <script src="script.js?v=2.1"></script>
 </body>
 </html>

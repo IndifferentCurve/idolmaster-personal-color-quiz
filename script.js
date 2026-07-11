@@ -168,6 +168,9 @@ let themeTransitionCleanupTimer = 0;
 let customGridRenderFrame = 0;
 let preparedResultBlob = null;
 let preparedResultFileName = "";
+let preparedResultObjectUrl = "";
+let questionImageRequestId = 0;
+let resultImageRequestId = 0;
 let customRenderedSeriesFilter = "";
 let customRenderedSearchQuery = "";
 const sidemJapaneseUnitLabels = Object.freeze({
@@ -317,6 +320,10 @@ themeToggle.addEventListener("click", () => {
 });
 
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Tab" && trapFocusInOpenModal(event)) {
+    return;
+  }
+
   if (event.key === "Escape" && resultPreview && !resultPreview.hidden) {
     closeResultPreviewModal();
     return;
@@ -834,11 +841,11 @@ function triggerCorrectFeedback(button, answerHex) {
     imageFrame.classList.remove("is-answer-glow-on");
     stage.classList.add("is-answer-glow-fading");
     imageFrame.classList.add("is-answer-glow-fading");
-  }, 84);
+  }, 96);
 
   stageGlowTimer = window.setTimeout(() => {
     clearCorrectGlow(stage, imageFrame);
-  }, 960);
+  }, 820);
 }
 
 function clearCorrectGlow(stage = quizStage, frame = imageFrame) {
@@ -986,6 +993,57 @@ function openWrongNoteModal() {
   });
 }
 
+function getOpenModal() {
+  if (resultPreview && !resultPreview.hidden) return resultPreview;
+  if (wrongNoteModal && !wrongNoteModal.hidden) return wrongNoteModal;
+  return null;
+}
+
+function getFocusableElements(container) {
+  if (!container) return [];
+  return [...container.querySelectorAll(
+    "a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])"
+  )].filter((element) => (
+    element.getClientRects().length > 0
+    && element.getAttribute("aria-hidden") !== "true"
+  ));
+}
+
+function trapFocusInOpenModal(event) {
+  const modal = getOpenModal();
+  if (!modal) return false;
+
+  const focusableElements = getFocusableElements(modal);
+  if (!focusableElements.length) {
+    event.preventDefault();
+    return true;
+  }
+
+  const first = focusableElements[0];
+  const last = focusableElements[focusableElements.length - 1];
+  const activeElement = document.activeElement;
+
+  if (!modal.contains(activeElement)) {
+    event.preventDefault();
+    first.focus({ preventScroll: true });
+    return true;
+  }
+
+  if (event.shiftKey && activeElement === first) {
+    event.preventDefault();
+    last.focus({ preventScroll: true });
+    return true;
+  }
+
+  if (!event.shiftKey && activeElement === last) {
+    event.preventDefault();
+    first.focus({ preventScroll: true });
+    return true;
+  }
+
+  return false;
+}
+
 function closeWrongNoteModal() {
   if (!wrongNoteModal || wrongNoteModal.hidden) return;
 
@@ -1009,28 +1067,33 @@ function hideWrongNoteModalImmediately() {
 }
 
 async function saveResultImage() {
+  const requestId = ++resultImageRequestId;
   const originalText = saveResultButton.textContent;
   saveResultButton.disabled = true;
   saveResultButton.textContent = t("saving");
 
   try {
     const canvas = await createResultCanvas();
-    const dataUrl = canvas.toDataURL("image/png");
-    resultPreviewImage.src = dataUrl;
-    resultPreview.hidden = false;
-
     const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png", 1));
     if (!blob) throw new Error(t("resultImageError"));
+    if (requestId !== resultImageRequestId || !screens.result.classList.contains("is-active")) return;
 
+    if (preparedResultObjectUrl) URL.revokeObjectURL(preparedResultObjectUrl);
     preparedResultBlob = blob;
     preparedResultFileName = getResultFileName();
+    preparedResultObjectUrl = URL.createObjectURL(blob);
+    resultPreviewImage.src = preparedResultObjectUrl;
     resultPreviewActionButton.disabled = false;
     openResultPreviewModal();
   } catch (error) {
+    if (requestId !== resultImageRequestId) return;
+    clearResultPreview();
     window.alert(t("resultSaveError"));
   } finally {
-    saveResultButton.disabled = false;
-    saveResultButton.textContent = originalText;
+    if (requestId === resultImageRequestId) {
+      saveResultButton.disabled = false;
+      saveResultButton.textContent = originalText;
+    }
   }
 }
 
@@ -1055,8 +1118,6 @@ async function sharePreparedResultImage() {
 }
 
 async function shareOrDownloadResultBlob(blob, fileName) {
-  let shared = false;
-
   if (navigator.canShare && window.File) {
     const file = new File([blob], fileName, { type: "image/png" });
     if (navigator.canShare({ files: [file] })) {
@@ -1066,16 +1127,14 @@ async function shareOrDownloadResultBlob(blob, fileName) {
           title: t("shareTitle"),
           text: document.getElementById("scoreSummary").textContent
         });
-        shared = true;
+        return;
       } catch (error) {
-        shared = false;
+        if (error?.name === "AbortError") return;
       }
     }
   }
 
-  if (!shared) {
-    downloadBlob(blob, fileName);
-  }
+  downloadBlob(blob, fileName);
 }
 
 function getResultFileName() {
@@ -1107,11 +1166,15 @@ function closeResultPreviewModal() {
 
 function clearResultPreview() {
   window.clearTimeout(resultPreviewCloseTimer);
+  resultPreviewImage.removeAttribute("src");
+  if (preparedResultObjectUrl) {
+    URL.revokeObjectURL(preparedResultObjectUrl);
+    preparedResultObjectUrl = "";
+  }
   preparedResultBlob = null;
   preparedResultFileName = "";
   resultPreview.classList.remove("is-open");
   resultPreview.hidden = true;
-  resultPreviewImage.removeAttribute("src");
   if (resultPreviewActionButton) resultPreviewActionButton.disabled = false;
 }
 
@@ -1570,6 +1633,7 @@ function downloadBlob(blob, fileName) {
 }
 
 function resetGame() {
+  resultImageRequestId += 1;
   hideWrongNoteModalImmediately();
   clearCorrectGlow();
   state.questions = [];
@@ -1580,10 +1644,15 @@ function resetGame() {
   state.currentCombo = 0;
   state.wrongAnswers = [];
   state.resultSeries = [];
+  questionImageRequestId += 1;
+  characterImage.onload = null;
+  characterImage.onerror = null;
   updateComboBadge(false);
   nextButton.hidden = true;
   if (wrongNoteSection) wrongNoteSection.hidden = true;
   if (wrongNoteList) wrongNoteList.innerHTML = "";
+  saveResultButton.disabled = false;
+  saveResultButton.textContent = t("saveResult");
   clearResultPreview();
   showScreen("start");
   updateStartSummary();
@@ -2092,7 +2161,6 @@ function getCustomIdolCard(idol) {
   card.type = "button";
   card.className = "custom-idol-card";
   card.dataset.no = cacheKey;
-  card.setAttribute("role", "listitem");
 
   const avatar = document.createElement("span");
   avatar.className = "custom-idol-avatar";
@@ -2259,11 +2327,16 @@ function updatePresetSelection(activeButton = null) {
 }
 
 function setQuestionImage(question) {
+  const requestId = ++questionImageRequestId;
   imageFrame.classList.remove("is-missing");
   imageFallback.style.background = makeFallbackBackground(question.hex);
   updateQuestionImageText(question);
-  characterImage.onload = () => imageFrame.classList.remove("is-missing");
-  characterImage.onerror = () => imageFrame.classList.add("is-missing");
+  characterImage.onload = () => {
+    if (requestId === questionImageRequestId) imageFrame.classList.remove("is-missing");
+  };
+  characterImage.onerror = () => {
+    if (requestId === questionImageRequestId) imageFrame.classList.add("is-missing");
+  };
   characterImage.src = question.image;
 }
 
