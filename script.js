@@ -26,8 +26,8 @@ const state = {
   difficulty: "normal",
   series: ["all"],
   resultSeries: [],
-  countMode: "preset",
-  requestedQuestionCount: 5,
+  countMode: "all",
+  requestedQuestionCount: null,
   language: "ko",
   customSeriesFilter: seriesOrder[0] || "allstars",
   customSearchQuery: "",
@@ -42,7 +42,8 @@ const lastChoiceSignatures = new Map();
 const screens = {
   start: document.getElementById("startScreen"),
   quiz: document.getElementById("quizScreen"),
-  result: document.getElementById("resultScreen")
+  result: document.getElementById("resultScreen"),
+  guide: document.getElementById("guideScreen")
 };
 
 const questionCountInput = document.getElementById("questionCount");
@@ -99,10 +100,11 @@ const scoreUnit = document.getElementById("scoreUnit");
 const homeButton = document.getElementById("homeButton");
 const nextButton = document.getElementById("nextButton");
 const themeToggle = document.getElementById("themeToggle");
+const themeButtons = [themeToggle, document.getElementById("guideThemeToggle")].filter(Boolean);
 const languageButtons = [...document.querySelectorAll(".language-button")];
 const themeStorageKey = "idolmasterColorQuizTheme";
 const languageStorageKey = "idolmasterColorQuizLanguage";
-const appFontStack = "Pretendard, 'Noto Sans KR', Inter, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+const appFontStack = "'Quiz Sans', 'Noto Sans KR', 'Noto Sans JP', 'Segoe UI', sans-serif";
 const repositoryLabel = "IndifferentCurve/idolmaster-personal-color-quiz";
 const githubMarkPath = "M12 2C6.48 2 2 6.58 2 12.24c0 4.52 2.87 8.36 6.84 9.72.5.09.68-.22.68-.49 0-.24-.01-.88-.01-1.73-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.04 1.03-2.75-.1-.26-.45-1.31.1-2.72 0 0 .84-.28 2.75 1.05A9.32 9.32 0 0 1 12 6.96c.85 0 1.71.12 2.51.35 1.9-1.33 2.74-1.05 2.74-1.05.55 1.41.2 2.46.1 2.72.64.71 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.95.68 1.92 0 1.39-.01 2.51-.01 2.85 0 .27.18.58.69.48A10.2 10.2 0 0 0 22 12.24C22 6.58 17.52 2 12 2Z";
 const romajiVariantPairs = Object.freeze([
@@ -222,6 +224,8 @@ seriesOrder.forEach((series) => {
 });
 
 initializeCustomSelection();
+syncQuestionCountWithPool();
+updatePresetSelection();
 applyTheme(getInitialTheme());
 applyLanguage(getInitialLanguage());
 
@@ -251,7 +255,9 @@ document.querySelectorAll("input[name='difficulty']").forEach((input) => {
 document.querySelectorAll(".count-preset").forEach((button) => {
   button.addEventListener("click", () => {
     const poolSize = getPool().length;
-    const wasSelected = button.classList.contains("is-selected");
+    const wasSelected = button.classList.contains("is-selected") && (
+      button.dataset.count === "all" ? state.countMode === "all" : state.countMode === "preset"
+    );
 
     if (wasSelected) {
       const currentValue = getQuestionCountValue(poolSize);
@@ -266,8 +272,8 @@ document.querySelectorAll(".count-preset").forEach((button) => {
     const nextValue = button.dataset.count === "all" ? poolSize : Number(button.dataset.count);
     state.countMode = button.dataset.count === "all" ? "all" : "preset";
     state.requestedQuestionCount = button.dataset.count === "all" ? null : nextValue;
-    questionCountInput.value = String(Math.min(nextValue, poolSize));
-    updatePresetSelection(button);
+    syncQuestionCountWithPool(poolSize);
+    updatePresetSelection();
     updateStartSummary();
   });
 });
@@ -314,9 +320,11 @@ customSearchClearButton?.addEventListener("click", () => {
 });
 homeButton.addEventListener("click", resetGame);
 nextButton.addEventListener("click", continueAfterFeedback);
-themeToggle.addEventListener("click", () => {
-  const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-  applyTheme(nextTheme, true);
+themeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    applyTheme(nextTheme, true);
+  });
 });
 
 document.addEventListener("keydown", (event) => {
@@ -373,8 +381,11 @@ function applyTheme(theme, shouldStore = false) {
     suppressThemeTransitionWork();
   }
   root.dataset.theme = normalizedTheme;
-  themeToggle.setAttribute("aria-pressed", String(normalizedTheme === "dark"));
-  themeToggle.setAttribute("aria-label", normalizedTheme === "dark" ? t("themeToLight") : t("themeToDark"));
+  themeButtons.forEach((button) => {
+    button.setAttribute("aria-pressed", String(normalizedTheme === "dark"));
+    button.setAttribute("aria-label", normalizedTheme === "dark" ? t("themeToLight") : t("themeToDark"));
+    button.title = button.getAttribute("aria-label");
+  });
 
   if (shouldStore) {
     try {
@@ -425,7 +436,7 @@ function applyLanguage(language, shouldStore = false) {
 
   setText("#brandTitle", t("brandTitle"));
   setText("#mainTitle", t("heading"));
-  document.querySelector(".language-toggle")?.setAttribute("aria-label", t("languageSelect"));
+  document.querySelectorAll(".language-toggle").forEach((toggle) => toggle.setAttribute("aria-label", t("languageSelect")));
   setText(".series-panel legend", t("seriesSelect"));
   setText("#customPanelTitle", t("customPanelTitle"));
   setText("#customPanelHint", t("customPanelHint"));
@@ -447,7 +458,7 @@ function applyLanguage(language, shouldStore = false) {
   setText("#hexSourceLabel", t("hexSource"));
   setText("#imageSourceLabel", t("imageSource"));
   document.querySelector(".source-note")?.setAttribute("aria-label", t("sourceNote"));
-  setText("#homeButton", t("previous"));
+  setText("#homeButton", t("previous").replace(/^❮\s*/, ""));
   homeButton.setAttribute("aria-label", t("backHomeLabel"));
   setText("#quizScreen .stat:first-child span", t("question"));
   setText("#quizScreen .stat:nth-child(2) span", t("correct"));
@@ -462,7 +473,7 @@ function applyLanguage(language, shouldStore = false) {
   document.getElementById("resultGroup")?.setAttribute("aria-label", t("series"));
   setText(wrongNoteTitle, t("wrongNoteTitle"));
   setText(wrongNoteModalTitle, t("wrongNoteTitle"));
-  setText(wrongNoteExpandButton, t("wrongNoteExpand"));
+  setText(wrongNoteExpandButton, t("wrongNoteExpand").replace(/^⛶\s*/, ""));
   wrongNoteCloseButton?.setAttribute("aria-label", t("wrongNoteClose"));
   setText("#saveResultButton", t("saveResult"));
   setText("#resetButton", t("backToStart"));
@@ -480,6 +491,7 @@ function applyLanguage(language, shouldStore = false) {
   renderCustomPanel();
   applyTheme(document.documentElement.dataset.theme || getInitialTheme());
   refreshLocalizedScreen();
+  window.IdolmasterColorGuide?.refresh();
 
   if (shouldStore) {
     try {
@@ -544,8 +556,8 @@ function t(key, ...args) {
 
 function syncCountPresetLabels() {
   document.querySelectorAll(".count-preset").forEach((button) => {
-    if (button.dataset.count === "5") button.textContent = t("countPreset5");
     if (button.dataset.count === "10") button.textContent = t("countPreset10");
+    if (button.dataset.count === "20") button.textContent = t("countPreset20");
     if (button.dataset.count === "all") button.textContent = t("countPresetAll");
   });
 }
@@ -656,6 +668,17 @@ function renderQuestion() {
   setQuestionImage(question);
   renderChoices(question);
   preloadUpcomingImages();
+  animateQuestionEntry();
+}
+
+function animateQuestionEntry() {
+  if (!quizStage.animate) return;
+  quizStage.getAnimations().forEach((animation) => animation.cancel());
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  quizStage.animate([{ opacity: 0.65 }, { opacity: 1 }], {
+    duration: 160,
+    easing: "cubic-bezier(0.2, 0.7, 0.2, 1)"
+  });
 }
 
 function renderQuestionText(question) {
@@ -996,7 +1019,7 @@ function openWrongNoteModal() {
 function getOpenModal() {
   if (resultPreview && !resultPreview.hidden) return resultPreview;
   if (wrongNoteModal && !wrongNoteModal.hidden) return wrongNoteModal;
-  return null;
+  return window.IdolmasterColorGuide?.getOpenDialog() || null;
 }
 
 function getFocusableElements(container) {
@@ -1189,19 +1212,13 @@ async function createResultCanvas() {
   canvas.width = size;
   canvas.height = canvasHeight;
   const ctx = canvas.getContext("2d");
-  const isDark = document.documentElement.dataset.theme === "dark";
+  const tokens = getComputedStyle(document.documentElement);
   const colors = {
-    bg: isDark ? "#111118" : "#f4f5f7",
-    card: isDark ? "#1a1a24" : "#ffffff",
-    chip: isDark ? "#232330" : "#eceef3",
-    chipSoft: isDark ? "#20202b" : "#f0f2f6",
-    pill: isDark ? "#2a2a36" : "#ffffff",
-    text: isDark ? "#f4f6fb" : "#171821",
-    muted: isDark ? "#a4a8b6" : "#6d7180",
-    accent: "#8db7ff",
-    accentStrong: "#6f9ff2",
-    perfect: "#b00020",
-    shadow: isDark ? "rgba(0, 0, 0, 0.28)" : "rgba(25, 26, 35, 0.1)"
+    bg: tokens.getPropertyValue("--page-bg").trim(),
+    text: tokens.getPropertyValue("--ink").trim(),
+    muted: tokens.getPropertyValue("--muted").trim(),
+    line: tokens.getPropertyValue("--line").trim(),
+    perfect: tokens.getPropertyValue("--perfect").trim()
   };
 
   const percent = document.getElementById("scorePercent").textContent;
@@ -1215,50 +1232,57 @@ async function createResultCanvas() {
     [t("resultDifficulty"), document.getElementById("resultDifficulty").textContent]
   ];
 
+  if (document.fonts?.load) {
+    const exportText = [message, t("scoreUnit"), t("series"), ...stats.flat(), ...activeSeries.map(getSeriesLabel)].join(" ");
+    await document.fonts.load(`550 28px ${appFontStack}`, exportText);
+  }
+
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
   ctx.fillStyle = colors.bg;
   ctx.fillRect(0, 0, size, canvasHeight);
-  ctx.save();
-  ctx.shadowColor = colors.shadow;
-  ctx.shadowBlur = 48;
-  ctx.shadowOffsetY = 20;
-  drawRoundRect(ctx, 96, 96, 888, 1012, 48, colors.card);
-  ctx.restore();
+  ctx.strokeStyle = colors.line;
+  ctx.lineWidth = 1;
+  [168, 722, 982].forEach((y) => {
+    ctx.beginPath();
+    ctx.moveTo(88, y);
+    ctx.lineTo(992, y);
+    ctx.stroke();
+  });
 
   ctx.fillStyle = colors.muted;
-  ctx.font = `800 30px ${appFontStack}`;
+  ctx.font = `550 24px ${appFontStack}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
-  ctx.fillText("THE IDOLM@STER", size / 2, 158);
+  ctx.fillText("THE IDOLM@STER", size / 2, 120);
 
   ctx.fillStyle = isPerfect ? colors.perfect : colors.text;
-  setFittedCanvasFont(ctx, message, 760, isPerfect ? 900 : 850, 74, 50);
-  drawTrackedCenteredText(ctx, message, size / 2, 270, message.length <= 4 ? -4 : -1.5);
+  setFittedCanvasFont(ctx, message, 904, isPerfect ? 750 : 550, 60, 40);
+  ctx.fillText(message, size / 2, 508);
 
-  drawScoreLine(ctx, percent, t("scoreUnit"), size / 2, 468, colors);
+  drawScoreLine(ctx, percent, t("scoreUnit"), size / 2, 398, colors);
 
   ctx.fillStyle = colors.muted;
-  ctx.font = `800 34px ${appFontStack}`;
+  ctx.font = `450 28px ${appFontStack}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
-  ctx.fillText(document.getElementById("scoreSummary").textContent, size / 2, 548);
+  ctx.fillText(document.getElementById("scoreSummary").textContent, size / 2, 562);
 
-  const statsX = 140;
-  const statsY = 574;
-  const statsWidth = 800;
+  const statsX = 88;
+  const statsY = 604;
+  const statsWidth = 904;
   const statsGap = 20;
   const statCardWidth = (statsWidth - statsGap * 2) / 3;
   stats.forEach(([label, value], index) => {
     const x = statsX + index * (statCardWidth + statsGap);
-    drawCanvasStatCard(ctx, x, statsY, statCardWidth, 112, label, value, colors);
+    drawCanvasStatCard(ctx, x, statsY, statCardWidth, label, value, colors);
   });
 
   drawResultSeriesCanvas(ctx, {
-    x: 140,
-    y: 704,
-    width: 800,
-    height: 184,
+    x: 88,
+    y: 742,
+    width: 904,
+    height: 208,
     activeSeries,
     seriesIconImages,
     colors
@@ -1266,17 +1290,16 @@ async function createResultCanvas() {
 
   ctx.textAlign = "center";
   ctx.fillStyle = colors.muted;
-  ctx.font = `700 24px ${appFontStack}`;
+  ctx.font = `500 24px ${appFontStack}`;
   ctx.textBaseline = "alphabetic";
-  ctx.fillText(t("canvasFooter"), size / 2, 990);
-  ctx.font = `700 18px ${appFontStack}`;
-  drawCanvasRepository(ctx, repositoryLabel, size / 2, 1022, colors);
+  ctx.fillText(t("canvasFooter"), size / 2, 1040);
+  drawCanvasRepository(ctx, repositoryLabel, size / 2, 1076, colors);
   return canvas;
 }
 
 function drawScoreLine(ctx, score, suffix, centerX, baselineY, colors) {
-  const numberFont = `900 188px ${appFontStack}`;
-  const suffixFont = `900 58px ${appFontStack}`;
+  const numberFont = `450 208px ${appFontStack}`;
+  const suffixFont = `450 40px ${appFontStack}`;
   const gap = 18;
 
   ctx.textAlign = "left";
@@ -1288,33 +1311,31 @@ function drawScoreLine(ctx, score, suffix, centerX, baselineY, colors) {
   const startX = centerX - (scoreWidth + gap + suffixWidth) / 2;
 
   ctx.font = numberFont;
-  ctx.fillStyle = colors.accent;
+  ctx.fillStyle = colors.text;
   ctx.fillText(score, startX, baselineY);
 
   ctx.font = suffixFont;
-  ctx.fillStyle = colors.text;
+  ctx.fillStyle = colors.muted;
   ctx.fillText(suffix, startX + scoreWidth + gap, baselineY);
 }
 
-function drawCanvasStatCard(ctx, x, y, width, height, label, value, colors) {
-  drawRoundRect(ctx, x, y, width, height, 24, colors.chip);
-
+function drawCanvasStatCard(ctx, x, y, width, label, value, colors) {
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = colors.muted;
-  ctx.font = `800 25px ${appFontStack}`;
-  ctx.fillText(label, x + width / 2, y + 44);
+  ctx.font = `450 23px ${appFontStack}`;
+  ctx.fillText(label, x + width / 2, y + 32);
 
   ctx.fillStyle = colors.text;
-  ctx.font = `900 39px ${appFontStack}`;
-  ctx.fillText(value, x + width / 2, y + 89);
+  ctx.font = `550 34px ${appFontStack}`;
+  ctx.fillText(value, x + width / 2, y + 80);
 }
 
 function drawCanvasRepository(ctx, label, centerX, baselineY, colors) {
   const iconSize = 20;
   const gap = 8;
   ctx.save();
-  ctx.font = `700 18px ${appFontStack}`;
+  ctx.font = `450 18px ${appFontStack}`;
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
   const textWidth = ctx.measureText(label).width;
@@ -1341,14 +1362,12 @@ function drawCanvasRepository(ctx, label, centerX, baselineY, colors) {
 
 function drawResultSeriesCanvas(ctx, options) {
   const { x, y, width, height, activeSeries, seriesIconImages, colors } = options;
-  drawRoundRect(ctx, x, y, width, height, 28, colors.chipSoft);
-
   const metrics = getSeriesCanvasLayout(ctx, activeSeries, width, height);
 
   ctx.fillStyle = colors.muted;
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
-  ctx.font = `800 ${metrics.titleFontSize}px ${appFontStack}`;
+  ctx.font = `450 ${metrics.titleFontSize}px ${appFontStack}`;
   ctx.fillText(t("series"), x + width / 2, y + metrics.titleBaseline);
 
   const rows = metrics.rows;
@@ -1453,13 +1472,6 @@ function getSeriesCanvasRowWidth(ctx, row, metrics) {
 }
 
 function drawSeriesCanvasPill(ctx, x, y, width, height, series, iconImage, colors, metrics) {
-  ctx.save();
-  ctx.shadowColor = "rgba(20, 24, 40, 0.08)";
-  ctx.shadowBlur = 10;
-  ctx.shadowOffsetY = 4;
-  drawRoundRect(ctx, x, y, width, height, 18, colors.pill);
-  ctx.restore();
-
   const badgeSize = { width: metrics.badgeWidth, height: metrics.badgeHeight };
   const badgeX = x + metrics.padX;
   const badgeY = y + (height - badgeSize.height) / 2;
@@ -1468,12 +1480,12 @@ function drawSeriesCanvasPill(ctx, x, y, width, height, series, iconImage, color
   ctx.fillStyle = colors.text;
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
-  ctx.font = `900 ${metrics.fontSize}px ${appFontStack}`;
+  ctx.font = `550 ${metrics.fontSize}px ${appFontStack}`;
   ctx.fillText(getSeriesLabel(series), badgeX + badgeSize.width + metrics.badgeGap, y + height / 2 + 1);
 }
 
 function getSeriesCanvasPillWidth(ctx, series, metrics) {
-  ctx.font = `900 ${metrics.fontSize}px ${appFontStack}`;
+  ctx.font = `550 ${metrics.fontSize}px ${appFontStack}`;
   return Math.ceil(metrics.padX + metrics.badgeWidth + metrics.badgeGap + ctx.measureText(getSeriesLabel(series)).width + metrics.padX);
 }
 
@@ -1483,17 +1495,12 @@ function drawSeriesCanvasBadge(ctx, x, y, width, height, series, iconImage) {
   gradient.addColorStop(0, colors.from);
   gradient.addColorStop(1, colors.to);
 
-  ctx.save();
-  ctx.shadowColor = "rgba(20, 24, 40, 0.12)";
-  ctx.shadowBlur = 10;
-  ctx.shadowOffsetY = 4;
-  drawRoundRect(ctx, x, y, width, height, 10, gradient);
-  ctx.restore();
+  drawRoundRect(ctx, x, y, width, height, 6, gradient);
 
   ctx.save();
   ctx.strokeStyle = "rgba(255, 255, 255, 0.34)";
   ctx.lineWidth = 1;
-  strokeRoundRect(ctx, x + 0.5, y + 0.5, width - 1, height - 1, 10);
+  strokeRoundRect(ctx, x + 0.5, y + 0.5, width - 1, height - 1, 6);
   ctx.restore();
 
   if (iconImage) {
@@ -1573,27 +1580,6 @@ function setFittedCanvasFont(ctx, text, maxWidth, weight, startSize, minSize) {
     size -= 2;
   } while (size > minSize);
   return size;
-}
-
-function drawTrackedCenteredText(ctx, text, centerX, baselineY, tracking) {
-  const characters = [...text];
-  if (characters.length <= 1) {
-    ctx.textAlign = "center";
-    ctx.textBaseline = "alphabetic";
-    ctx.fillText(text, centerX, baselineY);
-    return;
-  }
-
-  ctx.textAlign = "left";
-  ctx.textBaseline = "alphabetic";
-  const widths = characters.map((character) => ctx.measureText(character).width);
-  const textWidth = widths.reduce((sum, width) => sum + width, 0) + tracking * (characters.length - 1);
-  let cursorX = centerX - textWidth / 2;
-
-  characters.forEach((character, index) => {
-    ctx.fillText(character, cursorX, baselineY);
-    cursorX += widths[index] + tracking;
-  });
 }
 
 function drawRoundRect(ctx, x, y, width, height, radius, fillStyle) {
@@ -2305,21 +2291,16 @@ function getRequestedQuestionCount(poolSize = getPool().length) {
   return getQuestionCountValue(poolSize);
 }
 
-function updatePresetSelection(activeButton = null) {
+function updatePresetSelection() {
   const poolSize = getPool().length;
-  const value = Number(questionCountInput.value);
+  // A short pool changes the displayed preset, not the user's requested count.
+  const presetFallsBackToAll = state.countMode === "preset" && state.requestedQuestionCount > poolSize;
   document.querySelectorAll(".count-preset").forEach((button) => {
-    let matches = false;
-
-    if (activeButton) {
-      matches = button === activeButton;
-    } else if (button.dataset.count === "all") {
-      matches = state.countMode === "all" && value === poolSize;
-    } else {
-      matches = state.countMode === "preset" && Number(button.dataset.count) === value;
-    }
-
+    const matches = button.dataset.count === "all"
+      ? state.countMode === "all" || presetFallsBackToAll
+      : state.countMode === "preset" && !presetFallsBackToAll && Number(button.dataset.count) === state.requestedQuestionCount;
     button.classList.toggle("is-selected", matches);
+    button.setAttribute("aria-pressed", String(matches));
   });
 
   questionCountField?.classList.toggle("is-manual", state.countMode === "manual");
