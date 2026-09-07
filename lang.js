@@ -65,9 +65,23 @@ window.translations = {
     backHomeLabel: "메인 화면으로 돌아가기",
     question: "문항",
     correct: "정답",
+    scoreLabel: "점수",
+    timeLeft: "남은 시간",
+    seconds: (value) => `${value}초`,
+    pointsWithUnit: (points) => `+${points}점`,
+    answerTimeout: "시간 초과",
+    averageTime: "평균 응답시간",
+    maxScore: (score) => `만점 ${score}점`,
     confirm: "확인",
     viewResult: "결과 보기",
     result: "완료",
+    reportTitle: "컬러 리포트",
+    reportPalette: "이번 게임의 컬러",
+    reportLineup: "출제 아이돌",
+    reportMoreIdols: (count) => `외 ${count}명`,
+    reportRange: (shown, total) => `${shown} / ${total}문항`,
+    reportAnswerLabel: (index, name, hex, outcome) => `${index}번 ${name}, ${hex}, ${outcome}`,
+    reportRecorded: "플레이 일시",
     scoreUnit: "점",
     correctSummary: (correct, total) => `${correct} / ${total} 정답`,
     countWithUnit: (count) => `${count}개`,
@@ -103,12 +117,7 @@ window.translations = {
     imageSource: "이미지",
     canvasFooter: "Image Color Quiz",
     resultMessages: {
-      perfect: "당신이 아이돌마스터",
-      great: "@고인물",
-      good: "@청년",
-      fair: "@민이",
-      low: "놀안분?",
-      zero: "ㅁㅎ?"
+      perfect: "당신이 아이돌마스터"
     }
   },
   jp: {
@@ -165,9 +174,23 @@ window.translations = {
     backHomeLabel: "メイン画面に戻る",
     question: "問題",
     correct: "正解",
+    scoreLabel: "スコア",
+    timeLeft: "残り時間",
+    seconds: (value) => `${value}秒`,
+    pointsWithUnit: (points) => `+${points}点`,
+    answerTimeout: "時間切れ",
+    averageTime: "平均回答時間",
+    maxScore: (score) => `満点 ${score}点`,
     confirm: "確認",
     viewResult: "結果を見る",
     result: "完了",
+    reportTitle: "カラーリポート",
+    reportPalette: "今回のカラー",
+    reportLineup: "出題アイドル",
+    reportMoreIdols: (count) => `ほか${count}人`,
+    reportRange: (shown, total) => `${shown} / ${total}問`,
+    reportAnswerLabel: (index, name, hex, outcome) => `${index}問目 ${name}、${hex}、${outcome}`,
+    reportRecorded: "プレイ日時",
     scoreUnit: "点",
     correctSummary: (correct, total) => `${correct} / ${total} 正解`,
     countWithUnit: (count) => `${count}問`,
@@ -203,12 +226,7 @@ window.translations = {
     imageSource: "画像",
     canvasFooter: "Image Color Quiz",
     resultMessages: {
-      perfect: "あなたがアイドルマスター",
-      great: "歴戦のP",
-      good: "中堅P",
-      fair: "新米P",
-      low: "にわか？",
-      zero: "マジ？"
+      perfect: "あなたがアイドルマスター"
     }
   },
   en: {
@@ -265,9 +283,23 @@ window.translations = {
     backHomeLabel: "Back to main screen",
     question: "Question",
     correct: "Correct",
+    scoreLabel: "Score",
+    timeLeft: "Time left",
+    seconds: (value) => `${value}s`,
+    pointsWithUnit: (points) => `+${points} pts`,
+    answerTimeout: "Time's up",
+    averageTime: "Average time",
+    maxScore: (score) => `Max ${score} pts`,
     confirm: "Confirm",
     viewResult: "View Result",
     result: "Complete",
+    reportTitle: "Color Report",
+    reportPalette: "Your color trail",
+    reportLineup: "Idol lineup",
+    reportMoreIdols: (count) => `${count} more`,
+    reportRange: (shown, total) => `${shown} / ${total} questions`,
+    reportAnswerLabel: (index, name, hex, outcome) => `Question ${index}, ${name}, ${hex}, ${outcome}`,
+    reportRecorded: "Played on",
     scoreUnit: "pts",
     correctSummary: (correct, total) => `${correct} / ${total} correct`,
     countWithUnit: (count) => `${count}`,
@@ -303,12 +335,7 @@ window.translations = {
     imageSource: "Images",
     canvasFooter: "Image Color Quiz",
     resultMessages: {
-      perfect: "You are THE IDOLM@STER",
-      great: "Veteran P",
-      good: "Seasoned P",
-      fair: "Rookie P",
-      low: "Tourist?",
-      zero: "Nope"
+      perfect: "You are THE IDOLM@STER"
     }
   }
 };

@@ -19,6 +19,13 @@ const {
   difficultyLabels
 } = window.IdolmasterQuizData;
 
+const difficultyTiming = Object.freeze({
+  easy: Object.freeze({ limitSeconds: 30, graceSeconds: 11, maxScore: 500 }),
+  normal: Object.freeze({ limitSeconds: 25, graceSeconds: 9, maxScore: 1000 }),
+  hard: Object.freeze({ limitSeconds: 20, graceSeconds: 7, maxScore: 1500 }),
+  "very-hard": Object.freeze({ limitSeconds: 15, graceSeconds: 5, maxScore: 2000 })
+});
+
 const state = {
   questions: [],
   index: 0,
@@ -26,6 +33,9 @@ const state = {
   difficulty: "normal",
   series: ["all"],
   resultSeries: [],
+  resultCompletedAt: null,
+  answerRecords: [],
+  questionStartedAt: null,
   countMode: "all",
   requestedQuestionCount: null,
   language: "ko",
@@ -63,6 +73,9 @@ const poolSeriesList = document.getElementById("poolSeriesList");
 const startButton = document.getElementById("startButton");
 const progressText = document.getElementById("progressText");
 const progressBar = document.getElementById("progressBar");
+const questionTimer = document.getElementById("questionTimer");
+const questionTimeLeft = document.getElementById("questionTimeLeft");
+const pointsText = document.getElementById("pointsText");
 const comboBadge = document.getElementById("comboBadge");
 const scoreText = document.getElementById("scoreText");
 const quizDifficultyChip = document.getElementById("quizDifficultyChip");
@@ -172,6 +185,8 @@ let preparedResultBlob = null;
 let preparedResultFileName = "";
 let preparedResultObjectUrl = "";
 let questionImageRequestId = 0;
+let questionTimerFrame = 0;
+let questionTimeout = 0;
 let resultImageRequestId = 0;
 let customRenderedSeriesFilter = "";
 let customRenderedSearchQuery = "";
@@ -320,6 +335,7 @@ customSearchClearButton?.addEventListener("click", () => {
 });
 homeButton.addEventListener("click", resetGame);
 nextButton.addEventListener("click", continueAfterFeedback);
+document.addEventListener("visibilitychange", tickQuestionTimer);
 themeButtons.forEach((button) => {
   button.addEventListener("click", () => {
     const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
@@ -462,13 +478,16 @@ function applyLanguage(language, shouldStore = false) {
   homeButton.setAttribute("aria-label", t("backHomeLabel"));
   setText("#quizScreen .stat:first-child span", t("question"));
   setText("#quizScreen .stat:nth-child(2) span", t("correct"));
+  setText("#quizScreen .stat:nth-child(3) span", t("scoreLabel"));
+  setText("#questionTimerLabel", t("timeLeft"));
+  questionTimer.setAttribute("aria-label", t("timeLeft"));
   updateQuizDifficultyChip();
   setText(".result-main .eyebrow", t("resultEyebrow"));
   setText("#resultMessage", t("result"));
-  setText(".result-side .panel-title", t("record"));
   setText(".result-stat:nth-child(1) > span", t("correctCount"));
   setText(".result-stat:nth-child(2) > span", t("totalQuestions"));
   setText(".result-stat:nth-child(3) > span", t("resultDifficulty"));
+  setText(".result-stat:nth-child(4) > span", t("averageTime"));
   setText(".result-stat-series > span", t("series"));
   document.getElementById("resultGroup")?.setAttribute("aria-label", t("series"));
   setText(wrongNoteTitle, t("wrongNoteTitle"));
@@ -480,7 +499,7 @@ function applyLanguage(language, shouldStore = false) {
   setText(resultPreviewTitle, t("resultImage"));
   resultPreviewCloseButton?.setAttribute("aria-label", t("wrongNoteClose"));
   setText(resultPreviewActionButton, t("resultPreviewAction"));
-  setText(scoreUnit, t("scoreUnit"));
+  setText(scoreUnit, `/ ${getTimingRules().maxScore}`);
   resultPreviewImage.alt = t("resultImageAlt");
   questionCountField?.querySelector("label")?.setAttribute("data-active-label", t("manualActive"));
   syncCountPresetLabels();
@@ -510,13 +529,16 @@ function refreshLocalizedScreen() {
     renderQuestionText(question);
     updateQuestionImageText(question);
     updateQuizDifficultyChip();
+    updateQuestionTimerDisplay(state.locked ? state.answerRecords.at(-1)?.elapsedMs || 0 : getQuestionElapsedMs(), state.questionStartedAt === null);
     updateSwatchAriaLabels();
     updateComboBadge(false);
     if (state.currentAnswerFeedback) {
       renderAnswerNote(
         state.currentAnswerFeedback.isCorrect,
         state.currentAnswerFeedback.answerHex,
-        state.currentAnswerFeedback.selectedHex
+        state.currentAnswerFeedback.selectedHex,
+        state.currentAnswerFeedback.timedOut,
+        state.currentAnswerFeedback.earnedPoints
       );
       nextButton.textContent = state.index + 1 >= state.questions.length ? t("viewResult") : t("confirm");
     } else {
@@ -633,6 +655,8 @@ function startGame() {
   const total = normalizeQuestionCount(pool.length);
   if (total <= 0) return;
   state.questions = pool.slice(0, total);
+  state.resultCompletedAt = null;
+  state.answerRecords = [];
   state.index = 0;
   state.correct = 0;
   state.currentCombo = 0;
@@ -645,7 +669,91 @@ function startGame() {
   renderQuestion();
 }
 
+function getTimingRules(difficulty = state.difficulty) {
+  return difficultyTiming[difficulty] || difficultyTiming.normal;
+}
+
+function getAnswerCredit(isCorrect, elapsedMs, difficulty = state.difficulty) {
+  if (!isCorrect) return 0;
+  const { limitSeconds, graceSeconds } = getTimingRules(difficulty);
+  return clamp((limitSeconds - elapsedMs / 1000) / (limitSeconds - graceSeconds), 0, 1);
+}
+
+function getRunScore(additionalCredit = 0) {
+  if (!state.questions.length) return 0;
+  const { maxScore } = getTimingRules();
+  const credits = state.answerRecords.reduce((sum, answer) => sum + answer.credit, additionalCredit);
+  // Round the accumulated score, so every question count can reach the exact cap.
+  return Math.round(clamp(credits / state.questions.length, 0, 1) * maxScore);
+}
+
+function getAverageResponseSeconds() {
+  if (!state.answerRecords.length) return 0;
+  return state.answerRecords.reduce((sum, answer) => sum + answer.elapsedMs, 0) / state.answerRecords.length / 1000;
+}
+
+function formatResponseTime(seconds) {
+  return t("seconds", seconds.toFixed(1));
+}
+
+function getQuestionElapsedMs() {
+  return state.questionStartedAt === null ? 0 : Math.max(0, performance.now() - state.questionStartedAt);
+}
+
+function stopQuestionTimer() {
+  window.cancelAnimationFrame(questionTimerFrame);
+  window.clearTimeout(questionTimeout);
+  questionTimerFrame = 0;
+  questionTimeout = 0;
+}
+
+function startQuestionTimer(question) {
+  if (state.questionStartedAt !== null || state.locked || question !== state.questions[state.index] || !screens.quiz.classList.contains("is-active")) return;
+  state.questionStartedAt = performance.now();
+  const startedAt = state.questionStartedAt;
+  [...swatches.children].forEach(button => { button.disabled = false; });
+  const expire = () => {
+    if (state.locked || state.questionStartedAt !== startedAt || question !== state.questions[state.index]) return;
+    const remaining = getTimingRules().limitSeconds * 1000 - getQuestionElapsedMs();
+    if (remaining > 0) questionTimeout = window.setTimeout(expire, remaining);
+    else judgeAnswer(null, null, question);
+  };
+  expire();
+  tickQuestionTimer();
+}
+
+function tickQuestionTimer() {
+  window.cancelAnimationFrame(questionTimerFrame);
+  questionTimerFrame = 0;
+  if (state.locked || state.questionStartedAt === null || !screens.quiz.classList.contains("is-active")) return;
+  const elapsedMs = getQuestionElapsedMs();
+  if (elapsedMs >= getTimingRules().limitSeconds * 1000) {
+    judgeAnswer(null, null, state.questions[state.index]);
+    return;
+  }
+  updateQuestionTimerDisplay(elapsedMs);
+  if (!document.hidden) questionTimerFrame = requestAnimationFrame(tickQuestionTimer);
+}
+
+function updateQuestionTimerDisplay(elapsedMs, loading = false) {
+  const { limitSeconds, graceSeconds } = getTimingRules();
+  const elapsed = elapsedMs / 1000;
+  const remaining = Math.max(0, limitSeconds - elapsed);
+  const graceRemaining = Math.max(0, graceSeconds - elapsed);
+  const lastAnswer = state.locked ? state.answerRecords.at(-1) : null;
+  const timeText = loading ? "--" : formatResponseTime(Math.ceil(remaining * 10) / 10);
+  if (questionTimeLeft.textContent !== timeText) questionTimeLeft.textContent = timeText;
+  questionTimer.classList.toggle("is-urgent", remaining <= 5 && !loading && !lastAnswer);
+  questionTimer.classList.toggle("is-answered", Boolean(lastAnswer));
+  questionTimer.style.setProperty("--time-ratio", String(remaining / limitSeconds));
+  questionTimer.style.setProperty("--grace-ratio", String(graceRemaining / graceSeconds));
+  questionTimer.style.setProperty("--grace-start", `${(limitSeconds - graceSeconds) / limitSeconds * 100}%`);
+  questionTimer.style.setProperty("--grace-width", `${graceSeconds / limitSeconds * 100}%`);
+}
+
 function renderQuestion() {
+  stopQuestionTimer();
+  state.questionStartedAt = null;
   state.locked = false;
   const question = state.questions[state.index];
   const current = state.index + 1;
@@ -654,6 +762,8 @@ function renderQuestion() {
   progressText.textContent = `${current} / ${total}`;
   setProgress((current - 1) / total);
   scoreText.textContent = String(state.correct);
+  pointsText.textContent = String(getRunScore());
+  updateQuestionTimerDisplay(0, true);
   updateQuizDifficultyChip();
   renderQuestionText(question);
   answerNote.innerHTML = "";
@@ -665,8 +775,8 @@ function renderQuestion() {
   nextButton.hidden = true;
   nextButton.textContent = t("confirm");
 
-  setQuestionImage(question);
   renderChoices(question);
+  setQuestionImage(question);
   preloadUpcomingImages();
   animateQuestionEntry();
 }
@@ -715,6 +825,7 @@ function renderChoices(question) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "color-choice";
+    button.disabled = true;
     button.style.background = choice.hex;
     button.style.setProperty("--choice-hex", choice.hex);
     button.dataset.hex = choice.hex.toLowerCase();
@@ -746,10 +857,23 @@ function getChoiceSignature(choices) {
 }
 
 function judgeAnswer(button, choice, question) {
-  if (state.locked) return;
+  if (state.locked || state.questionStartedAt === null || question !== state.questions[state.index] || !screens.quiz.classList.contains("is-active")) return;
+  const { limitSeconds } = getTimingRules();
+  const elapsedMs = Math.min(getQuestionElapsedMs(), limitSeconds * 1000);
+  const timedOut = elapsedMs >= limitSeconds * 1000;
+  if (!choice && !timedOut) return;
   state.locked = true;
+  stopQuestionTimer();
 
-  const isCorrect = choice.isAnswer;
+  const isCorrect = !timedOut && Boolean(choice?.isAnswer);
+  const selectedHex = timedOut ? null : choice.hex;
+  const previousScore = getRunScore();
+  state.answerRecords.push({
+    idolNo: question.no, isCorrect, timedOut, selectedHex, elapsedMs,
+    credit: getAnswerCredit(isCorrect, elapsedMs, state.difficulty)
+  });
+  state.answerRecords.at(-1).points = getRunScore() - previousScore;
+  updateQuestionTimerDisplay(elapsedMs);
   if (isCorrect) {
     state.correct += 1;
     state.currentCombo += 1;
@@ -757,9 +881,9 @@ function judgeAnswer(button, choice, question) {
     triggerCorrectFeedback(button, question.hex);
   } else {
     state.currentCombo = 0;
-    button.classList.add("is-wrong");
+    if (!timedOut) button?.classList.add("is-wrong");
     triggerWrongFeedback();
-    recordWrongAnswer(question, choice.hex);
+    recordWrongAnswer(question, selectedHex, timedOut);
     const answerButton = [...swatches.children].find((item) => item.dataset.hex === question.hex.toLowerCase());
     if (answerButton) answerButton.classList.add("is-answer");
   }
@@ -768,13 +892,16 @@ function judgeAnswer(button, choice, question) {
   state.currentAnswerFeedback = {
     isCorrect,
     answerHex: question.hex,
-    selectedHex: choice.hex
+    selectedHex,
+    timedOut,
+    earnedPoints: state.answerRecords.at(-1).points
   };
-  renderAnswerNote(isCorrect, question.hex, choice.hex);
+  renderAnswerNote(isCorrect, question.hex, selectedHex, timedOut, state.currentAnswerFeedback.earnedPoints);
 
   feedbackMark.textContent = isCorrect ? "O" : "X";
   feedback.className = `feedback is-visible ${isCorrect ? "is-correct" : "is-wrong"}`;
   scoreText.textContent = String(state.correct);
+  pointsText.textContent = String(getRunScore());
   setProgress((state.index + 1) / state.questions.length);
   [...swatches.children].forEach((item) => {
     item.disabled = true;
@@ -784,12 +911,13 @@ function judgeAnswer(button, choice, question) {
   nextButton.focus({ preventScroll: true });
 }
 
-function renderAnswerNote(isCorrect, answerHex, selectedHex) {
+function renderAnswerNote(isCorrect, answerHex, selectedHex, timedOut = false, earnedPoints = 0) {
   const answer = formatHex(answerHex);
-  const selected = formatHex(selectedHex);
+  const selected = selectedHex ? formatHex(selectedHex) : "";
   const statusClass = isCorrect ? "is-correct" : "is-wrong";
-  const statusText = isCorrect ? t("answerCorrect") : t("answerWrong");
-  const selectedLine = isCorrect ? "" : `
+  const statusText = timedOut ? t("answerTimeout") : isCorrect ? t("answerCorrect") : t("answerWrong");
+  const points = isCorrect ? `<span class="answer-earned-points">${t("pointsWithUnit", earnedPoints)}</span>` : "";
+  const selectedLine = isCorrect || timedOut ? "" : `
     <span class="answer-chip is-selected-color">
       <span class="mini-chip" style="background:${selected}"></span>
       ${t("answerSelected")} ${selected}
@@ -797,7 +925,7 @@ function renderAnswerNote(isCorrect, answerHex, selectedHex) {
   `;
 
   answerNote.innerHTML = `
-    <div class="answer-result ${statusClass}">${statusText}</div>
+    <div class="answer-result ${statusClass}">${statusText}${points}</div>
     <div class="answer-note-lines">
       ${selectedLine}
       <span class="answer-chip is-answer-color">
@@ -888,11 +1016,12 @@ function triggerWrongFeedback() {
   }, 340);
 }
 
-function recordWrongAnswer(question, selectedHex) {
+function recordWrongAnswer(question, selectedHex, timedOut = false) {
   state.wrongAnswers.push({
     idol: question,
     image: question.image,
     selectedHex,
+    timedOut,
     answerHex: question.hex
   });
 }
@@ -906,7 +1035,7 @@ function setProgress(ratio) {
 }
 
 function continueAfterFeedback() {
-  if (!state.locked) return;
+  if (!state.locked || !state.currentAnswerFeedback) return;
   clearCorrectGlow();
   state.index += 1;
   if (state.index >= state.questions.length) {
@@ -917,6 +1046,8 @@ function continueAfterFeedback() {
 }
 
 function showResult() {
+  stopQuestionTimer();
+  state.resultCompletedAt ||= new Date().toISOString();
   clearResultPreview();
   renderResultDetails();
   showScreen("result");
@@ -924,18 +1055,23 @@ function showResult() {
 
 function renderResultDetails() {
   const total = state.questions.length;
-  const percent = getScorePercent(state.correct, total);
-  document.getElementById("scorePercent").textContent = formatScorePercent(percent);
-  setText(scoreUnit, t("scoreUnit"));
+  const score = getRunScore();
+  const maxScore = getTimingRules().maxScore;
+  const percent = getScorePercent(score, maxScore);
+  document.getElementById("scorePercent").textContent = String(score);
+  setText(scoreUnit, `/ ${maxScore}`);
   document.getElementById("scoreSummary").textContent = t("correctSummary", state.correct, total);
   document.getElementById("resultCorrect").textContent = t("countWithUnit", state.correct);
   document.getElementById("resultTotal").textContent = t("countWithUnit", total);
   document.getElementById("resultDifficulty").textContent = getDifficultyLabel(state.difficulty);
+  setText("#resultAverageTime", formatResponseTime(getAverageResponseSeconds()));
   renderResultSeries(state.resultSeries.length ? state.resultSeries : state.series);
   renderWrongAnswers();
   const resultMessage = document.getElementById("resultMessage");
   resultMessage.textContent = getResultMessage(percent);
-  resultMessage.classList.toggle("is-perfect", percent === 100);
+  resultMessage.hidden = !resultMessage.textContent;
+  resultMessage.classList.toggle("is-perfect", percent >= 80);
+  window.IdolmasterResultReport?.render();
 }
 
 function renderWrongAnswers() {
@@ -979,7 +1115,14 @@ function createWrongAnswerCard(item, variant = "compact") {
 
   const colors = document.createElement("div");
   colors.className = "wrong-note-colors";
-  colors.appendChild(createWrongColorBadge(t("wrongSelected"), item.selectedHex, "is-picked"));
+  if (item.timedOut) {
+    const timeout = document.createElement("span");
+    timeout.className = "wrong-color-badge is-timeout";
+    timeout.textContent = t("answerTimeout");
+    colors.appendChild(timeout);
+  } else {
+    colors.appendChild(createWrongColorBadge(t("wrongSelected"), item.selectedHex, "is-picked"));
+  }
   colors.appendChild(createWrongColorBadge(t("wrongAnswer"), item.answerHex, "is-correct"));
 
   body.append(name, colors);
@@ -1161,7 +1304,10 @@ async function shareOrDownloadResultBlob(blob, fileName) {
 }
 
 function getResultFileName() {
-  return `idolmaster-color-result-${new Date().toISOString().slice(0, 10)}.png`;
+  const date = new Date(state.resultCompletedAt || Date.now());
+  const dateLabel = [date.getFullYear(), date.getMonth() + 1, date.getDate()]
+    .map((part, index) => index ? String(part).padStart(2, "0") : part).join("-");
+  return `idolmaster-color-result-${dateLabel}.png`;
 }
 
 function openResultPreviewModal() {
@@ -1202,133 +1348,7 @@ function clearResultPreview() {
 }
 
 async function createResultCanvas() {
-  if (document.fonts?.ready) {
-    await document.fonts.ready;
-  }
-
-  const canvas = document.createElement("canvas");
-  const size = 1080;
-  const canvasHeight = 1160;
-  canvas.width = size;
-  canvas.height = canvasHeight;
-  const ctx = canvas.getContext("2d");
-  const tokens = getComputedStyle(document.documentElement);
-  const colors = {
-    bg: tokens.getPropertyValue("--page-bg").trim(),
-    text: tokens.getPropertyValue("--ink").trim(),
-    muted: tokens.getPropertyValue("--muted").trim(),
-    line: tokens.getPropertyValue("--line").trim(),
-    perfect: tokens.getPropertyValue("--perfect").trim()
-  };
-
-  const percent = document.getElementById("scorePercent").textContent;
-  const message = document.getElementById("resultMessage").textContent;
-  const isPerfect = document.getElementById("resultMessage").classList.contains("is-perfect");
-  const activeSeries = state.resultSeries.length ? state.resultSeries : getActiveSeriesValues(state.series);
-  const seriesIconImages = await loadSeriesIconImages(activeSeries);
-  const stats = [
-    [t("correctCount"), document.getElementById("resultCorrect").textContent],
-    [t("totalQuestions"), document.getElementById("resultTotal").textContent],
-    [t("resultDifficulty"), document.getElementById("resultDifficulty").textContent]
-  ];
-
-  if (document.fonts?.load) {
-    const exportText = [message, t("scoreUnit"), t("series"), ...stats.flat(), ...activeSeries.map(getSeriesLabel)].join(" ");
-    await document.fonts.load(`550 28px ${appFontStack}`, exportText);
-  }
-
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
-  ctx.fillStyle = colors.bg;
-  ctx.fillRect(0, 0, size, canvasHeight);
-  ctx.strokeStyle = colors.line;
-  ctx.lineWidth = 1;
-  [168, 722, 982].forEach((y) => {
-    ctx.beginPath();
-    ctx.moveTo(88, y);
-    ctx.lineTo(992, y);
-    ctx.stroke();
-  });
-
-  ctx.fillStyle = colors.muted;
-  ctx.font = `550 24px ${appFontStack}`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "alphabetic";
-  ctx.fillText("THE IDOLM@STER", size / 2, 120);
-
-  ctx.fillStyle = isPerfect ? colors.perfect : colors.text;
-  setFittedCanvasFont(ctx, message, 904, isPerfect ? 750 : 550, 60, 40);
-  ctx.fillText(message, size / 2, 508);
-
-  drawScoreLine(ctx, percent, t("scoreUnit"), size / 2, 398, colors);
-
-  ctx.fillStyle = colors.muted;
-  ctx.font = `450 28px ${appFontStack}`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "alphabetic";
-  ctx.fillText(document.getElementById("scoreSummary").textContent, size / 2, 562);
-
-  const statsX = 88;
-  const statsY = 604;
-  const statsWidth = 904;
-  const statsGap = 20;
-  const statCardWidth = (statsWidth - statsGap * 2) / 3;
-  stats.forEach(([label, value], index) => {
-    const x = statsX + index * (statCardWidth + statsGap);
-    drawCanvasStatCard(ctx, x, statsY, statCardWidth, label, value, colors);
-  });
-
-  drawResultSeriesCanvas(ctx, {
-    x: 88,
-    y: 742,
-    width: 904,
-    height: 208,
-    activeSeries,
-    seriesIconImages,
-    colors
-  });
-
-  ctx.textAlign = "center";
-  ctx.fillStyle = colors.muted;
-  ctx.font = `500 24px ${appFontStack}`;
-  ctx.textBaseline = "alphabetic";
-  ctx.fillText(t("canvasFooter"), size / 2, 1040);
-  drawCanvasRepository(ctx, repositoryLabel, size / 2, 1076, colors);
-  return canvas;
-}
-
-function drawScoreLine(ctx, score, suffix, centerX, baselineY, colors) {
-  const numberFont = `450 208px ${appFontStack}`;
-  const suffixFont = `450 40px ${appFontStack}`;
-  const gap = 18;
-
-  ctx.textAlign = "left";
-  ctx.textBaseline = "alphabetic";
-  ctx.font = numberFont;
-  const scoreWidth = ctx.measureText(score).width;
-  ctx.font = suffixFont;
-  const suffixWidth = ctx.measureText(suffix).width;
-  const startX = centerX - (scoreWidth + gap + suffixWidth) / 2;
-
-  ctx.font = numberFont;
-  ctx.fillStyle = colors.text;
-  ctx.fillText(score, startX, baselineY);
-
-  ctx.font = suffixFont;
-  ctx.fillStyle = colors.muted;
-  ctx.fillText(suffix, startX + scoreWidth + gap, baselineY);
-}
-
-function drawCanvasStatCard(ctx, x, y, width, label, value, colors) {
-  ctx.textAlign = "center";
-  ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = colors.muted;
-  ctx.font = `450 23px ${appFontStack}`;
-  ctx.fillText(label, x + width / 2, y + 32);
-
-  ctx.fillStyle = colors.text;
-  ctx.font = `550 34px ${appFontStack}`;
-  ctx.fillText(value, x + width / 2, y + 80);
+  return window.IdolmasterResultReport.createCanvas();
 }
 
 function drawCanvasRepository(ctx, label, centerX, baselineY, colors) {
@@ -1362,7 +1382,7 @@ function drawCanvasRepository(ctx, label, centerX, baselineY, colors) {
 
 function drawResultSeriesCanvas(ctx, options) {
   const { x, y, width, height, activeSeries, seriesIconImages, colors } = options;
-  const metrics = getSeriesCanvasLayout(ctx, activeSeries, width, height);
+  const metrics = options.metrics || getSeriesCanvasLayout(ctx, activeSeries, width, height);
 
   ctx.fillStyle = colors.muted;
   ctx.textAlign = "center";
@@ -1619,6 +1639,9 @@ function downloadBlob(blob, fileName) {
 }
 
 function resetGame() {
+  stopQuestionTimer();
+  state.questionStartedAt = null;
+  state.answerRecords = [];
   resultImageRequestId += 1;
   hideWrongNoteModalImmediately();
   clearCorrectGlow();
@@ -1630,6 +1653,7 @@ function resetGame() {
   state.currentCombo = 0;
   state.wrongAnswers = [];
   state.resultSeries = [];
+  state.resultCompletedAt = null;
   questionImageRequestId += 1;
   characterImage.onload = null;
   characterImage.onerror = null;
@@ -1779,7 +1803,8 @@ function createSeriesSummaryItem(series, itemClassName) {
 
     const name = document.createElement("span");
     name.className = itemClassName === "result-series-item" ? "result-series-name" : "pool-series-name";
-    name.textContent = getSeriesLabel(series);
+    if (itemClassName === "result-series-item") renderSeriesOptionName(name, series);
+    else name.textContent = getSeriesLabel(series);
 
     item.append(iconBadge, name);
     return item;
@@ -2310,15 +2335,21 @@ function updatePresetSelection() {
 function setQuestionImage(question) {
   const requestId = ++questionImageRequestId;
   imageFrame.classList.remove("is-missing");
+  imageFrame.classList.add("is-loading");
+  imageFrame.setAttribute("aria-busy", "true");
   imageFallback.style.background = makeFallbackBackground(question.hex);
   updateQuestionImageText(question);
-  characterImage.onload = () => {
-    if (requestId === questionImageRequestId) imageFrame.classList.remove("is-missing");
+  const ready = (missing) => {
+    if (requestId !== questionImageRequestId) return;
+    imageFrame.classList.toggle("is-missing", missing);
+    imageFrame.classList.remove("is-loading");
+    imageFrame.setAttribute("aria-busy", "false");
+    startQuestionTimer(question);
   };
-  characterImage.onerror = () => {
-    if (requestId === questionImageRequestId) imageFrame.classList.add("is-missing");
-  };
+  characterImage.onload = () => ready(false);
+  characterImage.onerror = () => ready(true);
   characterImage.src = question.image;
+  if (characterImage.complete) ready(!characterImage.naturalWidth);
 }
 
 function updateQuestionImageText(question) {
@@ -2759,23 +2790,13 @@ function makeFallbackBackground(hex) {
   return `linear-gradient(145deg, ${lighter}, ${hex} 48%, ${darker})`;
 }
 
-function getScorePercent(correct, total) {
-  if (!total) return 0;
-  return Math.round((correct / total) * 100);
-}
-
-function formatScorePercent(percent) {
-  return String(Math.round(percent));
+function getScorePercent(score, maxScore) {
+  if (!maxScore) return 0;
+  return (score / maxScore) * 100;
 }
 
 function getResultMessage(percent) {
-  const messages = getDictionary().resultMessages;
-  if (percent === 100) return messages.perfect;
-  if (percent >= 80) return messages.great;
-  if (percent >= 60) return messages.good;
-  if (percent >= 40) return messages.fair;
-  if (percent >= 11) return messages.low;
-  return messages.zero;
+  return percent >= 80 ? getDictionary().resultMessages.perfect : "";
 }
 
 function shuffle(items) {

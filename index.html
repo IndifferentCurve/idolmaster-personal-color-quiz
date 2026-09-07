@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="style.css?v=2.2">
+  <link rel="stylesheet" href="style.css?v=2.3">
 </head>
 <body>
   <main class="app">
@@ -304,6 +304,7 @@
       <div class="quiz-shell">
         <div class="quiz-nav">
           <button class="back-button" id="homeButton" type="button" aria-label=""></button>
+          <div class="combo-badge" id="comboBadge" aria-live="polite" hidden></div>
         </div>
         <div class="quiz-progress">
           <div class="quiz-top">
@@ -315,15 +316,28 @@
               <span></span>
               <strong id="scoreText">0</strong>
             </div>
+            <div class="stat">
+              <span></span>
+              <strong id="pointsText">0</strong>
+            </div>
           </div>
           <div class="progress-track" aria-hidden="true">
             <div class="progress-bar" id="progressBar"></div>
           </div>
-          <div class="quiz-difficulty-chip" id="quizDifficultyChip">
-            <span class="quiz-difficulty-label" id="quizDifficultyLabel"></span>
-            <strong class="quiz-difficulty-name" id="quizDifficultyName"></strong>
+          <div class="quiz-timer" id="questionTimer" role="timer" aria-live="off">
+            <div class="question-timer-head">
+              <div class="quiz-difficulty-chip" id="quizDifficultyChip">
+                <span class="quiz-difficulty-label" id="quizDifficultyLabel"></span>
+                <strong class="quiz-difficulty-name" id="quizDifficultyName"></strong>
+              </div>
+              <div class="question-time-left"><span id="questionTimerLabel"></span><strong id="questionTimeLeft">--</strong></div>
+            </div>
+            <div class="question-time-track" aria-hidden="true">
+              <span class="question-time-remaining"></span>
+              <span class="question-time-grace"></span>
+              <span class="question-time-boundary"></span>
+            </div>
           </div>
-          <div class="combo-badge" id="comboBadge" aria-live="polite" hidden></div>
         </div>
 
         <div class="stage">
@@ -349,15 +363,20 @@
 
     <section class="screen" id="resultScreen">
       <div class="result-layout">
-        <div class="result-main">
-          <span class="result-brand">THE IDOLM@STER</span>
-          <div class="eyebrow"></div>
-          <h2 id="resultMessage"></h2>
-          <div class="score-number"><span id="scorePercent">0</span><span id="scoreUnit"></span></div>
-          <p class="subtitle" id="scoreSummary"></p>
-        </div>
-        <div class="result-side">
-          <h2 class="panel-title"></h2>
+        <article class="result-report" aria-labelledby="reportTitle">
+          <header class="report-header">
+            <div><span class="result-brand">THE IDOLM@STER</span><h2 id="reportTitle"></h2></div>
+            <time id="reportDate"></time>
+          </header>
+          <div class="result-main">
+            <div class="eyebrow"></div>
+            <h2 id="resultMessage"></h2>
+            <div class="report-score-row">
+              <div class="score-number"><span id="scorePercent">0</span><span id="scoreUnit"></span></div>
+              <div class="report-seal" aria-hidden="true"><span>P</span><small>COLOR MATCH</small></div>
+            </div>
+            <div class="report-score-meta"><p class="subtitle" id="scoreSummary"></p></div>
+          </div>
           <div class="result-stats">
             <div class="result-stat">
               <span></span>
@@ -371,11 +390,30 @@
               <span></span>
               <strong id="resultDifficulty">Normal</strong>
             </div>
-            <div class="result-stat result-stat-series">
+            <div class="result-stat">
               <span></span>
-              <div class="result-series-list" id="resultGroup" aria-label=""></div>
+              <strong id="resultAverageTime"></strong>
             </div>
           </div>
+          <section class="report-history" aria-labelledby="reportPaletteTitle">
+            <div class="report-section-head"><h3 id="reportPaletteTitle"></h3><span id="reportPaletteRange"></span></div>
+            <ol class="report-palette" id="reportPalette"></ol>
+          </section>
+          <section class="report-lineup" aria-labelledby="reportLineupTitle">
+            <div class="report-section-head"><h3 id="reportLineupTitle"></h3><span id="reportLineupRange"></span></div>
+            <ol class="report-picks" id="reportPicks"></ol>
+          </section>
+          <div class="result-stat result-stat-series">
+            <span></span>
+            <div class="result-series-list" id="resultGroup" aria-label=""></div>
+          </div>
+          <footer class="report-footer"><span>Image Color Quiz</span><span>COLOR / RECORD</span></footer>
+        </article>
+        <div class="result-actions">
+          <button class="save-button" id="saveResultButton" type="button"></button>
+          <button class="ghost-button" id="resetButton" type="button"></button>
+        </div>
+        <aside class="result-side">
           <section class="wrong-note" id="wrongNoteSection" hidden>
             <div class="wrong-note-head">
               <h3 id="wrongNoteTitle"></h3>
@@ -383,11 +421,7 @@
             </div>
             <div class="wrong-note-list" id="wrongNoteList"></div>
           </section>
-          <div class="result-actions">
-            <button class="save-button" id="saveResultButton" type="button"></button>
-            <button class="ghost-button" id="resetButton" type="button"></button>
-          </div>
-        </div>
+        </aside>
       </div>
     </section>
   </main>
@@ -445,9 +479,10 @@
   <script src="data/series/gakuen.js?v=1.2"></script>
   <script src="data/series/sidem.js?v=1.2"></script>
   <script src="data.js?v=1.1"></script>
-  <script src="lang.js?v=1.7"></script>
+  <script src="lang.js?v=1.8"></script>
   <!-- script.js wires the UI events and game flow after the data is ready. -->
-  <script src="script.js?v=2.2"></script>
+  <script src="script.js?v=2.3"></script>
   <script src="guide.js?v=1.1"></script>
+  <script src="result-report.js?v=1.0"></script>
 </body>
 </html>
