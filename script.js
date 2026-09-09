@@ -233,10 +233,13 @@ const enrichedIdols = ALL_IDOLS.map((idol) => {
   };
 });
 const enrichedIdolByNo = new Map(enrichedIdols.map((idol) => [idol.no, idol]));
-const customIdolsBySeries = new Map([["all", enrichedIdols]]);
+const customIdolsBySeries = new Map();
 seriesOrder.forEach((series) => {
-  customIdolsBySeries.set(series, enrichedIdols.filter((idol) => idol.series === series));
+  const idols = enrichedIdols.filter((idol) => idol.series === series);
+  if (series === "sidem") idols.sort((left, right) => left.officialId - right.officialId);
+  customIdolsBySeries.set(series, idols);
 });
+customIdolsBySeries.set("all", seriesOrder.flatMap((series) => customIdolsBySeries.get(series)));
 
 initializeCustomSelection();
 syncQuestionCountWithPool();
@@ -1869,7 +1872,7 @@ function getSeriesValuesFromIdols(idols) {
 }
 
 function getCustomVisibleIdols(filter = getValidCustomSeriesFilter(), query = getNormalizedCustomSearchQuery()) {
-  const seriesIdols = customIdolsBySeries.get(filter) || enrichedIdols;
+  const seriesIdols = customIdolsBySeries.get(filter) || customIdolsBySeries.get("all");
   if (!query.normalized) return seriesIdols;
   return seriesIdols.filter((idol) => doesIdolMatchCustomSearch(idol, query));
 }
@@ -1987,26 +1990,37 @@ function cancelScheduledCustomIdolGridRender() {
 }
 
 function getNormalizedCustomSearchQuery() {
-  const normalized = normalizeSearchText(state.customSearchQuery);
-  return {
-    normalized,
-    compact: compactSearchText(normalized),
-    tokens: normalized.split(" ").filter(Boolean)
-  };
+  return parseIdolSearchQuery(state.customSearchQuery);
+}
+
+function parseIdolSearchQuery(value) {
+  const normalized = normalizeSearchText(value);
+  // OR separates alternatives; + requires every term within an alternative.
+  const alternatives = normalized.split(/(?:^|\s)or(?=\s|$)/u)
+    .map((alternative) => alternative.split("+")
+      .map((term) => term.trim())
+      .filter(Boolean)
+      .map((term) => ({
+        normalized: term,
+        compact: compactSearchText(term),
+        tokens: term.split(" ")
+      })))
+    .filter((terms) => terms.length);
+  return { normalized, alternatives };
 }
 
 function doesIdolMatchCustomSearch(idol, query) {
-  const haystack = getCustomSearchHaystack(idol);
   if (!query.normalized) return true;
+  const haystack = getCustomSearchHaystack(idol);
 
-  const directHit = haystack.normalized.includes(query.normalized)
-    || haystack.compact.includes(query.compact);
-  if (directHit) return true;
-
-  return query.tokens.every((token) => (
-    haystack.normalized.includes(token)
-    || haystack.compact.includes(compactSearchText(token))
-  ));
+  return query.alternatives.some((terms) => terms.every((term) => (
+    haystack.normalized.includes(term.normalized)
+    || haystack.compact.includes(term.compact)
+    || term.tokens.every((token) => (
+      haystack.normalized.includes(token)
+      || haystack.compact.includes(compactSearchText(token))
+    ))
+  )));
 }
 
 function getCustomSearchHaystack(idol) {
@@ -2022,6 +2036,12 @@ function getCustomSearchHaystack(idol) {
     idol.unitKo,
     idol.group,
     idol.attribute,
+    idol.hex,
+    idol.series === "sidem" ? sidemJapaneseUnitLabels[idol.unit] : "",
+    ...Object.values(translations).flatMap((dictionary) => [
+      dictionary.seriesLabels?.[idol.series],
+      dictionary.attributeLabels?.[idol.attribute]
+    ]),
     ...getIdolRomajiSearchAliases(idol)
   ];
   const normalized = normalizeSearchText(aliases.filter(Boolean).join(" "));

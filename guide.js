@@ -269,16 +269,12 @@ window.IdolmasterColorGuide = (() => {
 
   function render() {
     if (!screen.classList.contains("is-active")) return;
-    const normalized = normalizeSearchText(search.value);
-    const query = { normalized, compact: compactSearchText(normalized), tokens: normalized.split(" ").filter(Boolean) };
-    const key = `${selectedSeries}|${normalized}|${state.language}`;
+    const query = parseIdolSearchQuery(search.value);
+    const key = `${selectedSeries}|${query.normalized}|${state.language}`;
     clear.hidden = search.value.length === 0;
     if (key === renderedKey) return;
     resetCopyFeedback();
-    const idols = enrichedIdols.filter((idol) => (
-      (selectedSeries === "all" || idol.series === selectedSeries)
-      && (!normalized || doesIdolMatchCustomSearch(idol, query))
-    ));
+    const idols = getCustomVisibleIdols(selectedSeries, query);
     const fragment = document.createDocumentFragment();
     idols.forEach((idol) => {
       if (!cards.has(idol.no)) cards.set(idol.no, createCard(idol));
