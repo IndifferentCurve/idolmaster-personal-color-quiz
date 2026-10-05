@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: idolmaster-color-quiz
+    runtime: static
+    # Publish only what the site loads; reference_assets/ stays out of the deploy.
+    buildCommand: mkdir -p dist && cp -r index.html favicon.ico *.js style.css assets data dist/
+    staticPublishPath: ./dist
