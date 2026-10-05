@@ -30,6 +30,27 @@ python -m http.server 8765
 
 브라우저에서 `http://localhost:8765/`에 접속합니다.
 
+## 프로젝트 구조
+
+```
+index.html            화면 마크업
+css/style.css         디자인 토큰·레이아웃·테마
+js/lang.js            한국어·일본어·영어 문구
+js/color.js           색 변환·지각 색차(CIELAB)
+js/search.js          이름·가나·로마자 검색
+js/choices.js         난이도별 보기 색 생성
+js/app.js             게임 진행·화면 전환·점수
+js/guide.js           컬러 가이드·일러스트 상세
+js/result-report.js   결과 리포트·공유 이미지
+js/ui.js              메인 컬러 스트립·숫자키 선택
+data/series/*.js      시리즈별 아이돌 데이터
+data/quiz-data.js     시리즈 데이터 통합
+assets/               일러스트·얼굴·폰트·아이콘
+reference_assets/     원본·가공 자료 (배포 제외)
+```
+
+스크립트는 빌드 없이 `index.html`에 적힌 순서대로 불러오는 일반 스크립트입니다. 파일을 추가할 때는 이 순서를 지켜 주세요.
+
 ## 출처
 
 | 항목 | 출처 |

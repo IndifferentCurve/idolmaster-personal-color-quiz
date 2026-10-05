@@ -3,5 +3,10 @@ services:
     name: idolmaster-color-quiz
     runtime: static
     # Publish only what the site loads; reference_assets/ stays out of the deploy.
-    buildCommand: mkdir -p dist && cp -r index.html favicon.ico *.js style.css assets data dist/
+    buildCommand: mkdir -p dist && cp -r index.html favicon.ico css js data assets dist/
     staticPublishPath: ./dist
+    headers:
+      # Illustrations, faces, fonts and icons rarely change; let browsers keep them for a week.
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=604800

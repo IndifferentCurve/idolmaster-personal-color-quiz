@@ -1,8 +1,295 @@
 "use strict";
 
-// Screen and export share the same completed-game record, never a new sample.
+/*
+  js/result-report.js
+  Renders the on-screen color report and draws the shareable PNG version of it.
+  Screen and export share the same completed-game record, never a new sample.
+*/
 window.IdolmasterResultReport = (() => {
   const spectrumStops = ["#f34f6d", "#f39800", "#ffc30b", "#0fbe94", "#2681c8", "#7ac7ff", "#ff7db7", "#f34f6d"];
+
+  // ───── Canvas drawing helpers (private to the export) ─────
+  const appFontStack = "'Quiz Sans', 'Noto Sans KR', 'Noto Sans JP', 'Segoe UI', sans-serif";
+
+  const repositoryLabel = "IndifferentCurve/idolmaster-personal-color-quiz";
+
+  const githubMarkPath = "M12 2C6.48 2 2 6.58 2 12.24c0 4.52 2.87 8.36 6.84 9.72.5.09.68-.22.68-.49 0-.24-.01-.88-.01-1.73-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.04 1.03-2.75-.1-.26-.45-1.31.1-2.72 0 0 .84-.28 2.75 1.05A9.32 9.32 0 0 1 12 6.96c.85 0 1.71.12 2.51.35 1.9-1.33 2.74-1.05 2.74-1.05.55 1.41.2 2.46.1 2.72.64.71 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.95.68 1.92 0 1.39-.01 2.51-.01 2.85 0 .27.18.58.69.48A10.2 10.2 0 0 0 22 12.24C22 6.58 17.52 2 12 2Z";
+
+  function drawCanvasRepository(ctx, label, centerX, baselineY, colors) {
+    const iconSize = 20;
+    const gap = 8;
+    ctx.save();
+    ctx.font = `450 18px ${appFontStack}`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    const textWidth = ctx.measureText(label).width;
+    const startX = centerX - (iconSize + gap + textWidth) / 2;
+    const iconY = baselineY - iconSize + 3;
+
+    ctx.fillStyle = colors.muted;
+    if (typeof Path2D !== "undefined") {
+      const iconPath = new Path2D(githubMarkPath);
+      ctx.save();
+      ctx.translate(startX, iconY);
+      ctx.scale(iconSize / 24, iconSize / 24);
+      ctx.fill(iconPath);
+      ctx.restore();
+    } else {
+      ctx.beginPath();
+      ctx.arc(startX + iconSize / 2, iconY + iconSize / 2, iconSize / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.fillText(label, startX + iconSize + gap, baselineY);
+    ctx.restore();
+  }
+
+  function drawResultSeriesCanvas(ctx, options) {
+    const { x, y, width, height, activeSeries, seriesIconImages, colors } = options;
+    const metrics = options.metrics || getSeriesCanvasLayout(ctx, activeSeries, width, height);
+
+    ctx.fillStyle = colors.muted;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.font = `450 ${metrics.titleFontSize}px ${appFontStack}`;
+    ctx.fillText(t("series"), x + width / 2, y + metrics.titleBaseline);
+
+    const rows = metrics.rows;
+    const totalRowsHeight = rows.length * metrics.pillHeight + Math.max(0, rows.length - 1) * metrics.rowGap;
+    const availableHeight = height - metrics.listTop - metrics.bottomPadding;
+    const listTop = y + metrics.listTop + Math.max(0, (availableHeight - totalRowsHeight) / 2);
+
+    rows.forEach((row, rowIndex) => {
+      const rowWidth = row.reduce((sum, series, index) => (
+        sum + getSeriesCanvasPillWidth(ctx, series, metrics) + (index > 0 ? metrics.gap : 0)
+      ), 0);
+      let cursorX = x + (width - rowWidth) / 2;
+      const pillY = listTop + rowIndex * (metrics.pillHeight + metrics.rowGap);
+
+      row.forEach((series) => {
+        const pillWidth = getSeriesCanvasPillWidth(ctx, series, metrics);
+        drawSeriesCanvasPill(ctx, cursorX, pillY, pillWidth, metrics.pillHeight, series, seriesIconImages[series], colors, metrics);
+        cursorX += pillWidth + metrics.gap;
+      });
+    });
+  }
+
+  function getSeriesCanvasLayout(ctx, seriesValues, width, height) {
+    const variants = [
+      { fontSize: 28, titleFontSize: 26, pillHeight: 52, rowGap: 16, gap: 16, padX: 18, badgeWidth: 42, badgeHeight: 32, badgeGap: 12, listTop: 74, bottomPadding: 24 },
+      { fontSize: 26, titleFontSize: 25, pillHeight: 48, rowGap: 12, gap: 12, padX: 16, badgeWidth: 38, badgeHeight: 30, badgeGap: 10, listTop: 70, bottomPadding: 22 },
+      { fontSize: 24, titleFontSize: 24, pillHeight: 44, rowGap: 10, gap: 10, padX: 14, badgeWidth: 34, badgeHeight: 28, badgeGap: 9, listTop: 66, bottomPadding: 22 },
+      { fontSize: 22, titleFontSize: 23, pillHeight: 40, rowGap: 8, gap: 8, padX: 12, badgeWidth: 31, badgeHeight: 25, badgeGap: 8, listTop: 62, bottomPadding: 18 },
+      { fontSize: 20, titleFontSize: 22, pillHeight: 36, rowGap: 6, gap: 8, padX: 10, badgeWidth: 29, badgeHeight: 23, badgeGap: 7, listTop: 56, bottomPadding: 16 },
+      { fontSize: 18, titleFontSize: 21, pillHeight: 34, rowGap: 5, gap: 7, padX: 9, badgeWidth: 27, badgeHeight: 22, badgeGap: 6, listTop: 54, bottomPadding: 14 }
+    ];
+    const maxWidth = width - 48;
+
+    for (const metrics of variants) {
+      const rows = makeSeriesPillRows(ctx, seriesValues, maxWidth, metrics);
+      const rowsHeight = rows.length * metrics.pillHeight + Math.max(0, rows.length - 1) * metrics.rowGap;
+      if (rowsHeight <= height - metrics.listTop - metrics.bottomPadding) {
+        return {
+          ...metrics,
+          titleBaseline: Math.min(44, metrics.listTop - 24),
+          rows
+        };
+      }
+    }
+
+    const fallback = variants[variants.length - 1];
+    return {
+      ...fallback,
+      titleBaseline: Math.min(44, fallback.listTop - 24),
+      rows: makeSeriesPillRows(ctx, seriesValues, maxWidth, fallback)
+    };
+  }
+
+  function makeSeriesPillRows(ctx, seriesValues, maxWidth, metrics) {
+    const preferredRows = makePreferredSeriesRows(seriesValues);
+    if (preferredRows && preferredRows.every((row) => getSeriesCanvasRowWidth(ctx, row, metrics) <= maxWidth)) {
+      return preferredRows;
+    }
+
+    const rows = [];
+    let row = [];
+    let rowWidth = 0;
+
+    seriesValues.forEach((series) => {
+      const pillWidth = getSeriesCanvasPillWidth(ctx, series, metrics);
+      const nextWidth = rowWidth + (row.length ? metrics.gap : 0) + pillWidth;
+      if (row.length && nextWidth > maxWidth) {
+        rows.push(row);
+        row = [series];
+        rowWidth = pillWidth;
+        return;
+      }
+
+      row.push(series);
+      rowWidth = nextWidth;
+    });
+
+    if (row.length) rows.push(row);
+    return rows.length ? rows : [[]];
+  }
+
+  function makePreferredSeriesRows(seriesValues) {
+    if (seriesValues.length === 4) {
+      return [seriesValues.slice(0, 2), seriesValues.slice(2, 4)];
+    }
+
+    if (seriesValues.length === 5) {
+      return [seriesValues.slice(0, 3), seriesValues.slice(3, 5)];
+    }
+
+    if (seriesValues.length === 6) {
+      return [seriesValues.slice(0, 3), seriesValues.slice(3, 6)];
+    }
+
+    return null;
+  }
+
+  function getSeriesCanvasRowWidth(ctx, row, metrics) {
+    return row.reduce((sum, series, index) => (
+      sum + getSeriesCanvasPillWidth(ctx, series, metrics) + (index > 0 ? metrics.gap : 0)
+    ), 0);
+  }
+
+  function drawSeriesCanvasPill(ctx, x, y, width, height, series, iconImage, colors, metrics) {
+    const badgeSize = { width: metrics.badgeWidth, height: metrics.badgeHeight };
+    const badgeX = x + metrics.padX;
+    const badgeY = y + (height - badgeSize.height) / 2;
+    drawSeriesCanvasBadge(ctx, badgeX, badgeY, badgeSize.width, badgeSize.height, series, iconImage);
+
+    ctx.fillStyle = colors.text;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.font = `550 ${metrics.fontSize}px ${appFontStack}`;
+    ctx.fillText(getSeriesLabel(series), badgeX + badgeSize.width + metrics.badgeGap, y + height / 2 + 1);
+  }
+
+  function getSeriesCanvasPillWidth(ctx, series, metrics) {
+    ctx.font = `550 ${metrics.fontSize}px ${appFontStack}`;
+    return Math.ceil(metrics.padX + metrics.badgeWidth + metrics.badgeGap + ctx.measureText(getSeriesLabel(series)).width + metrics.padX);
+  }
+
+  function drawSeriesCanvasBadge(ctx, x, y, width, height, series, iconImage) {
+    const colors = getSeriesCanvasColors(series);
+    const gradient = ctx.createLinearGradient(x, y, x + width, y + height);
+    gradient.addColorStop(0, colors.from);
+    gradient.addColorStop(1, colors.to);
+
+    drawRoundRect(ctx, x, y, width, height, 6, gradient);
+
+    ctx.save();
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.34)";
+    ctx.lineWidth = 1;
+    strokeRoundRect(ctx, x + 0.5, y + 0.5, width - 1, height - 1, 6);
+    ctx.restore();
+
+    if (iconImage) {
+      const fit = containRect(iconImage.width, iconImage.height, x + 5, y + 4, width - 10, height - 8);
+      ctx.drawImage(iconImage, fit.x, fit.y, fit.width, fit.height);
+      return;
+    }
+
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.font = `900 13px ${appFontStack}`;
+    ctx.fillText(getSeriesFallbackMark(series), x + width / 2, y + height / 2 + 5);
+  }
+
+  function getSeriesCanvasColors(series) {
+    return {
+      allstars: { from: "#ff7894", to: "#f34f6d" },
+      million: { from: "#ffdc64", to: "#ffc30b" },
+      cinderella: { from: "#5aaee8", to: "#2681c8" },
+      shiny: { from: "#ff7db7", to: "#7ac7ff" },
+      gakuen: { from: "#ffc052", to: "#f39800" },
+      sidem: { from: "#5be5c8", to: "#0fbe94" }
+    }[series] || { from: "#8db7ff", to: "#6f9ff2" };
+  }
+
+  function getSeriesFallbackMark(series) {
+    return {
+      allstars: "AS",
+      million: "MS",
+      cinderella: "CG",
+      shiny: "SC",
+      gakuen: "G",
+      sidem: "SM"
+    }[series] || "@";
+  }
+
+  function containRect(sourceWidth, sourceHeight, x, y, width, height) {
+    const scale = Math.min(width / sourceWidth, height / sourceHeight);
+    const fittedWidth = sourceWidth * scale;
+    const fittedHeight = sourceHeight * scale;
+    return {
+      x: x + (width - fittedWidth) / 2,
+      y: y + (height - fittedHeight) / 2,
+      width: fittedWidth,
+      height: fittedHeight
+    };
+  }
+
+  function loadSeriesIconImages(seriesValues) {
+    return Promise.all(seriesValues.map((series) => loadImage(seriesIcons[series])))
+      .then((images) => seriesValues.reduce((map, series, index) => {
+        map[series] = images[index];
+        return map;
+      }, {}));
+  }
+
+  function loadImage(src) {
+    return new Promise((resolve) => {
+      if (!src) {
+        resolve(null);
+        return;
+      }
+
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => resolve(null);
+      image.src = src;
+    });
+  }
+
+  function setFittedCanvasFont(ctx, text, maxWidth, weight, startSize, minSize) {
+    let size = startSize;
+    do {
+      ctx.font = `${weight} ${size}px ${appFontStack}`;
+      if (ctx.measureText(text).width <= maxWidth || size <= minSize) break;
+      size -= 2;
+    } while (size > minSize);
+    return size;
+  }
+
+  function drawRoundRect(ctx, x, y, width, height, radius, fillStyle) {
+    addRoundRectPath(ctx, x, y, width, height, radius);
+    ctx.fillStyle = fillStyle;
+    ctx.fill();
+  }
+
+  function strokeRoundRect(ctx, x, y, width, height, radius) {
+    addRoundRectPath(ctx, x, y, width, height, radius);
+    ctx.stroke();
+  }
+
+  function addRoundRectPath(ctx, x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+  }
 
   function getRecord() {
     const answers = state.questions.map((idol, index) => {

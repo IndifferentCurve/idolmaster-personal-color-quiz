@@ -1,9 +1,9 @@
 "use strict";
 
 /*
-  lang.js
+  js/lang.js
   Centralized UI language dictionaries for the quiz.
-  data.js is loaded first so Korean base labels can reuse canonical data labels.
+  data/quiz-data.js is loaded first so Korean base labels can reuse canonical data labels.
 */
 const quizLanguageData = window.IdolmasterQuizData || {};
 const baseSeriesLabels = quizLanguageData.seriesLabels || {};
@@ -31,7 +31,6 @@ window.translations = {
     themeToDark: "다크모드로 전환",
     themeToLight: "라이트모드로 전환",
     seriesSelect: "시리즈 선택",
-    customMode: "커스텀",
     customPanelTitle: "커스텀",
     customPanelHint: "시리즈별로 출제할 아이돌을 직접 고르세요.",
     customSeriesFilterLabel: "커스텀 시리즈 필터",
@@ -61,7 +60,7 @@ window.translations = {
     totalPeople: (count) => `총 ${count}명`,
     poolMeta: (count, difficulty) => `${count}문항 · ${difficulty}`,
     start: "게임 시작",
-    previous: "❮ 이전",
+    previous: "이전",
     backHomeLabel: "메인 화면으로 돌아가기",
     question: "문항",
     correct: "정답",
@@ -92,7 +91,7 @@ window.translations = {
     series: "시리즈",
     comboText: (combo) => `${combo} Combo`,
     wrongNoteTitle: "오답 노트",
-    wrongNoteExpand: "⛶ 전체 보기",
+    wrongNoteExpand: "전체 보기",
     wrongNoteClose: "닫기",
     wrongSelected: "내 선택",
     wrongAnswer: "정답",
@@ -140,7 +139,6 @@ window.translations = {
     themeToDark: "ダークモードに切り替え",
     themeToLight: "ライトモードに切り替え",
     seriesSelect: "シリーズ選択",
-    customMode: "カスタム",
     customPanelTitle: "カスタム",
     customPanelHint: "シリーズごとに出題するアイドルを選べます。",
     customSeriesFilterLabel: "カスタムシリーズフィルター",
@@ -170,7 +168,7 @@ window.translations = {
     totalPeople: (count) => `全${count}人`,
     poolMeta: (count, difficulty) => `${count}問 · ${difficulty}`,
     start: "ゲーム開始",
-    previous: "❮ 戻る",
+    previous: "戻る",
     backHomeLabel: "メイン画面に戻る",
     question: "問題",
     correct: "正解",
@@ -201,7 +199,7 @@ window.translations = {
     series: "シリーズ",
     comboText: (combo) => `${combo} Combo`,
     wrongNoteTitle: "ミスノート",
-    wrongNoteExpand: "⛶ 全体表示",
+    wrongNoteExpand: "全体表示",
     wrongNoteClose: "閉じる",
     wrongSelected: "選択",
     wrongAnswer: "正解",
@@ -249,7 +247,6 @@ window.translations = {
     themeToDark: "Switch to dark mode",
     themeToLight: "Switch to light mode",
     seriesSelect: "Series",
-    customMode: "Custom",
     customPanelTitle: "Custom",
     customPanelHint: "Choose exactly which idols can appear by series.",
     customSeriesFilterLabel: "Custom series filter",
@@ -279,7 +276,7 @@ window.translations = {
     totalPeople: (count) => `${count} idols`,
     poolMeta: (count, difficulty) => `${count} questions · ${difficulty}`,
     start: "Start Game",
-    previous: "❮ Back",
+    previous: "Back",
     backHomeLabel: "Back to main screen",
     question: "Question",
     correct: "Correct",
@@ -310,7 +307,7 @@ window.translations = {
     series: "Series",
     comboText: (combo) => `${combo} Combo`,
     wrongNoteTitle: "Missed Colors",
-    wrongNoteExpand: "⛶ View All",
+    wrongNoteExpand: "View All",
     wrongNoteClose: "Close",
     wrongSelected: "Picked",
     wrongAnswer: "Answer",

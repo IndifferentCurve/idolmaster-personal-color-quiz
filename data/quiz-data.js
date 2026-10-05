@@ -1,8 +1,8 @@
 "use strict";
 
 /*
-  data.js
-  Aggregates data/series/*.js into the compatibility export used by script.js.
+  data/quiz-data.js
+  Aggregates data/series/*.js into the compatibility export used by js/app.js.
   Load all series files before this file.
 */
 (() => {

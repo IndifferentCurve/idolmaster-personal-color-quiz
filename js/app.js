@@ -1,9 +1,10 @@
 "use strict";
 
 /*
-  script.js
-  ?? ?? ??? ??? ??? ?????.
-  data.js? ?? ???? window.IdolmasterQuizData? ???? ??? ???.
+  js/app.js
+  Game state, screens and UI wiring: setup, question flow, timer, scoring and results.
+  Reads window.IdolmasterQuizData (data/quiz-data.js) and window.translations (js/lang.js),
+  and relies on js/color.js, js/search.js and js/choices.js for the pure logic.
 */
 const {
   IDOLS,
@@ -47,8 +48,6 @@ const state = {
   wrongAnswers: [],
   locked: false
 };
-const lastChoiceSignatures = new Map();
-
 const screens = {
   start: document.getElementById("startScreen"),
   quiz: document.getElementById("quizScreen"),
@@ -117,60 +116,6 @@ const themeButtons = [themeToggle, document.getElementById("guideThemeToggle")].
 const languageButtons = [...document.querySelectorAll(".language-button")];
 const themeStorageKey = "idolmasterColorQuizTheme";
 const languageStorageKey = "idolmasterColorQuizLanguage";
-const appFontStack = "'Quiz Sans', 'Noto Sans KR', 'Noto Sans JP', 'Segoe UI', sans-serif";
-const repositoryLabel = "IndifferentCurve/idolmaster-personal-color-quiz";
-const githubMarkPath = "M12 2C6.48 2 2 6.58 2 12.24c0 4.52 2.87 8.36 6.84 9.72.5.09.68-.22.68-.49 0-.24-.01-.88-.01-1.73-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.04 1.03-2.75-.1-.26-.45-1.31.1-2.72 0 0 .84-.28 2.75 1.05A9.32 9.32 0 0 1 12 6.96c.85 0 1.71.12 2.51.35 1.9-1.33 2.74-1.05 2.74-1.05.55 1.41.2 2.46.1 2.72.64.71 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.95.68 1.92 0 1.39-.01 2.51-.01 2.85 0 .27.18.58.69.48A10.2 10.2 0 0 0 22 12.24C22 6.58 17.52 2 12 2Z";
-const romajiVariantPairs = Object.freeze([
-  ["shi", "si"],
-  ["sha", "sya"],
-  ["shu", "syu"],
-  ["sho", "syo"],
-  ["chi", "ti"],
-  ["cha", "tya"],
-  ["chu", "tyu"],
-  ["cho", "tyo"],
-  ["tsu", "tu"],
-  ["fu", "hu"],
-  ["ji", "zi"],
-  ["ja", "zya"],
-  ["ju", "zyu"],
-  ["jo", "zyo"]
-]);
-const romajiKanaMap = Object.freeze({
-  kya: "きゃ", kyu: "きゅ", kyo: "きょ",
-  gya: "ぎゃ", gyu: "ぎゅ", gyo: "ぎょ",
-  sha: "しゃ", shu: "しゅ", sho: "しょ",
-  sya: "しゃ", syu: "しゅ", syo: "しょ",
-  ja: "じゃ", ju: "じゅ", jo: "じょ",
-  jya: "じゃ", jyu: "じゅ", jyo: "じょ",
-  zya: "じゃ", zyu: "じゅ", zyo: "じょ",
-  cha: "ちゃ", chu: "ちゅ", cho: "ちょ",
-  tya: "ちゃ", tyu: "ちゅ", tyo: "ちょ",
-  nya: "にゃ", nyu: "にゅ", nyo: "にょ",
-  hya: "ひゃ", hyu: "ひゅ", hyo: "ひょ",
-  bya: "びゃ", byu: "びゅ", byo: "びょ",
-  pya: "ぴゃ", pyu: "ぴゅ", pyo: "ぴょ",
-  mya: "みゃ", myu: "みゅ", myo: "みょ",
-  rya: "りゃ", ryu: "りゅ", ryo: "りょ",
-  fa: "ふぁ", fi: "ふぃ", fe: "ふぇ", fo: "ふぉ",
-  va: "ゔぁ", vi: "ゔぃ", vu: "ゔ", ve: "ゔぇ", vo: "ゔぉ",
-  a: "あ", i: "い", u: "う", e: "え", o: "お",
-  ka: "か", ki: "き", ku: "く", ke: "け", ko: "こ",
-  ga: "が", gi: "ぎ", gu: "ぐ", ge: "げ", go: "ご",
-  sa: "さ", shi: "し", si: "し", su: "す", se: "せ", so: "そ",
-  za: "ざ", ji: "じ", zi: "じ", zu: "ず", ze: "ぜ", zo: "ぞ",
-  ta: "た", chi: "ち", ti: "ち", tsu: "つ", tu: "つ", te: "て", to: "と",
-  da: "だ", di: "ぢ", du: "づ", de: "で", do: "ど",
-  na: "な", ni: "に", nu: "ぬ", ne: "ね", no: "の",
-  ha: "は", hi: "ひ", fu: "ふ", hu: "ふ", he: "へ", ho: "ほ",
-  ba: "ば", bi: "び", bu: "ぶ", be: "べ", bo: "ぼ",
-  pa: "ぱ", pi: "ぴ", pu: "ぷ", pe: "ぺ", po: "ぽ",
-  ma: "ま", mi: "み", mu: "む", me: "め", mo: "も",
-  ya: "や", yu: "ゆ", yo: "よ",
-  ra: "ら", ri: "り", ru: "る", re: "れ", ro: "ろ",
-  wa: "わ", wi: "うぃ", we: "うぇ", wo: "を"
-});
-const romajiKanaKeys = Object.freeze(Object.keys(romajiKanaMap).sort((left, right) => right.length - left.length));
 const customFilterButtonCache = new Map();
 const customIdolCardCache = new Map();
 const customFilterValues = Object.freeze(["all", ...seriesOrder]);
@@ -482,7 +427,7 @@ function applyLanguage(language, shouldStore = false) {
   setText("#hexSourceLabel", t("hexSource"));
   setText("#imageSourceLabel", t("imageSource"));
   document.querySelector(".source-note")?.setAttribute("aria-label", t("sourceNote"));
-  setText("#homeButton", t("previous").replace(/^❮\s*/, ""));
+  setText("#homeButton", t("previous"));
   homeButton.setAttribute("aria-label", t("backHomeLabel"));
   setText("#quizScreen .stat:first-child span", t("question"));
   setText("#quizScreen .stat:nth-child(2) span", t("correct"));
@@ -500,7 +445,7 @@ function applyLanguage(language, shouldStore = false) {
   document.getElementById("resultGroup")?.setAttribute("aria-label", t("series"));
   setText(wrongNoteTitle, t("wrongNoteTitle"));
   setText(wrongNoteModalTitle, t("wrongNoteTitle"));
-  setText(wrongNoteExpandButton, t("wrongNoteExpand").replace(/^⛶\s*/, ""));
+  setText(wrongNoteExpandButton, t("wrongNoteExpand"));
   wrongNoteCloseButton?.setAttribute("aria-label", t("wrongNoteClose"));
   setText("#saveResultButton", t("saveResult"));
   setText("#resetButton", t("backToStart"));
@@ -600,6 +545,11 @@ function syncDifficultyLabels() {
 
     const description = label?.querySelector(".difficulty-description");
     if (description) description.textContent = getDifficultyDescription(input.value);
+
+    // The spec badge is drawn from difficultyTiming so the numbers can never drift from the rules.
+    const { limitSeconds, maxScore } = getTimingRules(input.value);
+    setText(label?.querySelector(".difficulty-spec b"), `${limitSeconds}s`);
+    setText(label?.querySelector(".difficulty-spec small"), `MAX ${maxScore}`);
   });
 }
 
@@ -817,7 +767,7 @@ function getIdolUnitName(idol) {
 }
 
 function renderChoices(question) {
-  const distractors = generateDistractors(question, state.difficulty);
+  const distractors = generateDistractors(question, state.difficulty, enrichedIdols);
   const choices = shuffleChoices(question, state.difficulty, [
     { hex: question.hex, isAnswer: true },
     ...distractors.map((hex) => ({ hex, isAnswer: false }))
@@ -836,27 +786,6 @@ function renderChoices(question) {
     button.addEventListener("click", () => judgeAnswer(button, choice, question));
     swatches.appendChild(button);
   });
-}
-
-function shuffleChoices(question, difficulty, choices) {
-  const key = `${difficulty}-${question.no}`;
-  const lastSignature = lastChoiceSignatures.get(key);
-  let shuffled = shuffle(choices);
-  let signature = getChoiceSignature(shuffled);
-  let attempts = 0;
-
-  while (signature === lastSignature && attempts < 12) {
-    shuffled = shuffle(choices);
-    signature = getChoiceSignature(shuffled);
-    attempts += 1;
-  }
-
-  lastChoiceSignatures.set(key, signature);
-  return shuffled;
-}
-
-function getChoiceSignature(choices) {
-  return choices.map((choice) => `${choice.hex.toLowerCase()}${choice.isAnswer ? "!" : ""}`).join("|");
 }
 
 function judgeAnswer(button, choice, question) {
@@ -1029,10 +958,6 @@ function recordWrongAnswer(question, selectedHex, timedOut = false) {
     timedOut,
     answerHex: question.hex
   });
-}
-
-function formatHex(hex) {
-  return String(hex).trim().toUpperCase();
 }
 
 function setProgress(ratio) {
@@ -1361,282 +1286,6 @@ function clearResultPreview() {
 
 async function createResultCanvas() {
   return window.IdolmasterResultReport.createCanvas();
-}
-
-function drawCanvasRepository(ctx, label, centerX, baselineY, colors) {
-  const iconSize = 20;
-  const gap = 8;
-  ctx.save();
-  ctx.font = `450 18px ${appFontStack}`;
-  ctx.textAlign = "left";
-  ctx.textBaseline = "alphabetic";
-  const textWidth = ctx.measureText(label).width;
-  const startX = centerX - (iconSize + gap + textWidth) / 2;
-  const iconY = baselineY - iconSize + 3;
-
-  ctx.fillStyle = colors.muted;
-  if (typeof Path2D !== "undefined") {
-    const iconPath = new Path2D(githubMarkPath);
-    ctx.save();
-    ctx.translate(startX, iconY);
-    ctx.scale(iconSize / 24, iconSize / 24);
-    ctx.fill(iconPath);
-    ctx.restore();
-  } else {
-    ctx.beginPath();
-    ctx.arc(startX + iconSize / 2, iconY + iconSize / 2, iconSize / 2, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  ctx.fillText(label, startX + iconSize + gap, baselineY);
-  ctx.restore();
-}
-
-function drawResultSeriesCanvas(ctx, options) {
-  const { x, y, width, height, activeSeries, seriesIconImages, colors } = options;
-  const metrics = options.metrics || getSeriesCanvasLayout(ctx, activeSeries, width, height);
-
-  ctx.fillStyle = colors.muted;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "alphabetic";
-  ctx.font = `450 ${metrics.titleFontSize}px ${appFontStack}`;
-  ctx.fillText(t("series"), x + width / 2, y + metrics.titleBaseline);
-
-  const rows = metrics.rows;
-  const totalRowsHeight = rows.length * metrics.pillHeight + Math.max(0, rows.length - 1) * metrics.rowGap;
-  const availableHeight = height - metrics.listTop - metrics.bottomPadding;
-  const listTop = y + metrics.listTop + Math.max(0, (availableHeight - totalRowsHeight) / 2);
-
-  rows.forEach((row, rowIndex) => {
-    const rowWidth = row.reduce((sum, series, index) => (
-      sum + getSeriesCanvasPillWidth(ctx, series, metrics) + (index > 0 ? metrics.gap : 0)
-    ), 0);
-    let cursorX = x + (width - rowWidth) / 2;
-    const pillY = listTop + rowIndex * (metrics.pillHeight + metrics.rowGap);
-
-    row.forEach((series) => {
-      const pillWidth = getSeriesCanvasPillWidth(ctx, series, metrics);
-      drawSeriesCanvasPill(ctx, cursorX, pillY, pillWidth, metrics.pillHeight, series, seriesIconImages[series], colors, metrics);
-      cursorX += pillWidth + metrics.gap;
-    });
-  });
-}
-
-function getSeriesCanvasLayout(ctx, seriesValues, width, height) {
-  const variants = [
-    { fontSize: 28, titleFontSize: 26, pillHeight: 52, rowGap: 16, gap: 16, padX: 18, badgeWidth: 42, badgeHeight: 32, badgeGap: 12, listTop: 74, bottomPadding: 24 },
-    { fontSize: 26, titleFontSize: 25, pillHeight: 48, rowGap: 12, gap: 12, padX: 16, badgeWidth: 38, badgeHeight: 30, badgeGap: 10, listTop: 70, bottomPadding: 22 },
-    { fontSize: 24, titleFontSize: 24, pillHeight: 44, rowGap: 10, gap: 10, padX: 14, badgeWidth: 34, badgeHeight: 28, badgeGap: 9, listTop: 66, bottomPadding: 22 },
-    { fontSize: 22, titleFontSize: 23, pillHeight: 40, rowGap: 8, gap: 8, padX: 12, badgeWidth: 31, badgeHeight: 25, badgeGap: 8, listTop: 62, bottomPadding: 18 },
-    { fontSize: 20, titleFontSize: 22, pillHeight: 36, rowGap: 6, gap: 8, padX: 10, badgeWidth: 29, badgeHeight: 23, badgeGap: 7, listTop: 56, bottomPadding: 16 },
-    { fontSize: 18, titleFontSize: 21, pillHeight: 34, rowGap: 5, gap: 7, padX: 9, badgeWidth: 27, badgeHeight: 22, badgeGap: 6, listTop: 54, bottomPadding: 14 }
-  ];
-  const maxWidth = width - 48;
-
-  for (const metrics of variants) {
-    const rows = makeSeriesPillRows(ctx, seriesValues, maxWidth, metrics);
-    const rowsHeight = rows.length * metrics.pillHeight + Math.max(0, rows.length - 1) * metrics.rowGap;
-    if (rowsHeight <= height - metrics.listTop - metrics.bottomPadding) {
-      return {
-        ...metrics,
-        titleBaseline: Math.min(44, metrics.listTop - 24),
-        rows
-      };
-    }
-  }
-
-  const fallback = variants[variants.length - 1];
-  return {
-    ...fallback,
-    titleBaseline: Math.min(44, fallback.listTop - 24),
-    rows: makeSeriesPillRows(ctx, seriesValues, maxWidth, fallback)
-  };
-}
-
-function makeSeriesPillRows(ctx, seriesValues, maxWidth, metrics) {
-  const preferredRows = makePreferredSeriesRows(seriesValues);
-  if (preferredRows && preferredRows.every((row) => getSeriesCanvasRowWidth(ctx, row, metrics) <= maxWidth)) {
-    return preferredRows;
-  }
-
-  const rows = [];
-  let row = [];
-  let rowWidth = 0;
-
-  seriesValues.forEach((series) => {
-    const pillWidth = getSeriesCanvasPillWidth(ctx, series, metrics);
-    const nextWidth = rowWidth + (row.length ? metrics.gap : 0) + pillWidth;
-    if (row.length && nextWidth > maxWidth) {
-      rows.push(row);
-      row = [series];
-      rowWidth = pillWidth;
-      return;
-    }
-
-    row.push(series);
-    rowWidth = nextWidth;
-  });
-
-  if (row.length) rows.push(row);
-  return rows.length ? rows : [[]];
-}
-
-function makePreferredSeriesRows(seriesValues) {
-  if (seriesValues.length === 4) {
-    return [seriesValues.slice(0, 2), seriesValues.slice(2, 4)];
-  }
-
-  if (seriesValues.length === 5) {
-    return [seriesValues.slice(0, 3), seriesValues.slice(3, 5)];
-  }
-
-  if (seriesValues.length === 6) {
-    return [seriesValues.slice(0, 3), seriesValues.slice(3, 6)];
-  }
-
-  return null;
-}
-
-function getSeriesCanvasRowWidth(ctx, row, metrics) {
-  return row.reduce((sum, series, index) => (
-    sum + getSeriesCanvasPillWidth(ctx, series, metrics) + (index > 0 ? metrics.gap : 0)
-  ), 0);
-}
-
-function drawSeriesCanvasPill(ctx, x, y, width, height, series, iconImage, colors, metrics) {
-  const badgeSize = { width: metrics.badgeWidth, height: metrics.badgeHeight };
-  const badgeX = x + metrics.padX;
-  const badgeY = y + (height - badgeSize.height) / 2;
-  drawSeriesCanvasBadge(ctx, badgeX, badgeY, badgeSize.width, badgeSize.height, series, iconImage);
-
-  ctx.fillStyle = colors.text;
-  ctx.textAlign = "left";
-  ctx.textBaseline = "middle";
-  ctx.font = `550 ${metrics.fontSize}px ${appFontStack}`;
-  ctx.fillText(getSeriesLabel(series), badgeX + badgeSize.width + metrics.badgeGap, y + height / 2 + 1);
-}
-
-function getSeriesCanvasPillWidth(ctx, series, metrics) {
-  ctx.font = `550 ${metrics.fontSize}px ${appFontStack}`;
-  return Math.ceil(metrics.padX + metrics.badgeWidth + metrics.badgeGap + ctx.measureText(getSeriesLabel(series)).width + metrics.padX);
-}
-
-function drawSeriesCanvasBadge(ctx, x, y, width, height, series, iconImage) {
-  const colors = getSeriesCanvasColors(series);
-  const gradient = ctx.createLinearGradient(x, y, x + width, y + height);
-  gradient.addColorStop(0, colors.from);
-  gradient.addColorStop(1, colors.to);
-
-  drawRoundRect(ctx, x, y, width, height, 6, gradient);
-
-  ctx.save();
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.34)";
-  ctx.lineWidth = 1;
-  strokeRoundRect(ctx, x + 0.5, y + 0.5, width - 1, height - 1, 6);
-  ctx.restore();
-
-  if (iconImage) {
-    const fit = containRect(iconImage.width, iconImage.height, x + 5, y + 4, width - 10, height - 8);
-    ctx.drawImage(iconImage, fit.x, fit.y, fit.width, fit.height);
-    return;
-  }
-
-  ctx.fillStyle = "#ffffff";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "alphabetic";
-  ctx.font = `900 13px ${appFontStack}`;
-  ctx.fillText(getSeriesFallbackMark(series), x + width / 2, y + height / 2 + 5);
-}
-
-function getSeriesCanvasColors(series) {
-  return {
-    allstars: { from: "#ff7894", to: "#f34f6d" },
-    million: { from: "#ffdc64", to: "#ffc30b" },
-    cinderella: { from: "#5aaee8", to: "#2681c8" },
-    shiny: { from: "#ff7db7", to: "#7ac7ff" },
-    gakuen: { from: "#ffc052", to: "#f39800" },
-    sidem: { from: "#5be5c8", to: "#0fbe94" }
-  }[series] || { from: "#8db7ff", to: "#6f9ff2" };
-}
-
-function getSeriesFallbackMark(series) {
-  return {
-    allstars: "AS",
-    million: "MS",
-    cinderella: "CG",
-    shiny: "SC",
-    gakuen: "G",
-    sidem: "SM"
-  }[series] || "@";
-}
-
-function containRect(sourceWidth, sourceHeight, x, y, width, height) {
-  const scale = Math.min(width / sourceWidth, height / sourceHeight);
-  const fittedWidth = sourceWidth * scale;
-  const fittedHeight = sourceHeight * scale;
-  return {
-    x: x + (width - fittedWidth) / 2,
-    y: y + (height - fittedHeight) / 2,
-    width: fittedWidth,
-    height: fittedHeight
-  };
-}
-
-function loadSeriesIconImages(seriesValues) {
-  return Promise.all(seriesValues.map((series) => loadImage(seriesIcons[series])))
-    .then((images) => seriesValues.reduce((map, series, index) => {
-      map[series] = images[index];
-      return map;
-    }, {}));
-}
-
-function loadImage(src) {
-  return new Promise((resolve) => {
-    if (!src) {
-      resolve(null);
-      return;
-    }
-
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => resolve(null);
-    image.src = src;
-  });
-}
-
-function setFittedCanvasFont(ctx, text, maxWidth, weight, startSize, minSize) {
-  let size = startSize;
-  do {
-    ctx.font = `${weight} ${size}px ${appFontStack}`;
-    if (ctx.measureText(text).width <= maxWidth || size <= minSize) break;
-    size -= 2;
-  } while (size > minSize);
-  return size;
-}
-
-function drawRoundRect(ctx, x, y, width, height, radius, fillStyle) {
-  addRoundRectPath(ctx, x, y, width, height, radius);
-  ctx.fillStyle = fillStyle;
-  ctx.fill();
-}
-
-function strokeRoundRect(ctx, x, y, width, height, radius) {
-  addRoundRectPath(ctx, x, y, width, height, radius);
-  ctx.stroke();
-}
-
-function addRoundRectPath(ctx, x, y, width, height, radius) {
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + width - radius, y);
-  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-  ctx.lineTo(x + width, y + height - radius);
-  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-  ctx.lineTo(x + radius, y + height);
-  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
 }
 
 function downloadBlob(blob, fileName) {
@@ -2002,40 +1651,12 @@ function getNormalizedCustomSearchQuery() {
   return parseIdolSearchQuery(state.customSearchQuery);
 }
 
-function parseIdolSearchQuery(value) {
-  const normalized = normalizeSearchText(value);
-  // OR separates alternatives; + requires every term within an alternative.
-  const alternatives = normalized.split(/(?:^|\s)or(?=\s|$)/u)
-    .map((alternative) => alternative.split("+")
-      .map((term) => term.trim())
-      .filter(Boolean)
-      .map((term) => ({
-        normalized: term,
-        compact: compactSearchText(term),
-        tokens: term.split(" ")
-      })))
-    .filter((terms) => terms.length);
-  return { normalized, alternatives };
-}
-
 function doesIdolMatchCustomSearch(idol, query) {
-  if (!query.normalized) return true;
-  const haystack = getCustomSearchHaystack(idol);
-
-  return query.alternatives.some((terms) => terms.every((term) => (
-    haystack.normalized.includes(term.normalized)
-    || haystack.compact.includes(term.compact)
-    || term.tokens.every((token) => (
-      haystack.normalized.includes(token)
-      || haystack.compact.includes(compactSearchText(token))
-    ))
-  )));
+  return matchesSearchQuery(getCustomSearchHaystack(idol), query);
 }
 
 function getCustomSearchHaystack(idol) {
-  if (idol.customSearchHaystack) return idol.customSearchHaystack;
-
-  const aliases = [
+  idol.customSearchHaystack ||= createSearchHaystack([
     idol.name,
     idol.jpName,
     idol.enName,
@@ -2051,145 +1672,14 @@ function getCustomSearchHaystack(idol) {
       dictionary.seriesLabels?.[idol.series],
       dictionary.attributeLabels?.[idol.attribute]
     ]),
-    ...getIdolRomajiSearchAliases(idol)
-  ];
-  const normalized = normalizeSearchText(aliases.filter(Boolean).join(" "));
-  idol.customSearchHaystack = {
-    normalized,
-    compact: compactSearchText(normalized)
-  };
+    ...getRomajiAliases(getIdolImageBaseName(idol))
+  ]);
   return idol.customSearchHaystack;
 }
 
-function getIdolRomajiSearchAliases(idol) {
+function getIdolImageBaseName(idol) {
   const fileName = IDOL_IMAGE_FILES[idol.no] || idol.image || "";
-  const baseName = fileName.split("/").pop().replace(/\.[^.]+$/, "");
-  const aliases = [
-    baseName,
-    baseName.replace(/[_-]+/g, " "),
-    baseName.replace(/[_-]+/g, "")
-  ];
-
-  getRomajiSearchVariants(baseName).forEach((variant) => {
-    aliases.push(variant);
-    const hiragana = romajiToHiragana(variant);
-    if (hiragana !== variant) {
-      aliases.push(hiragana, hiraganaToKatakana(hiragana));
-    }
-  });
-
-  return aliases;
-}
-
-function getRomajiSearchVariants(value) {
-  const base = normalizeRomajiText(value);
-  if (!base) return [];
-
-  const variants = new Set([base, compactSearchText(base)]);
-  romajiVariantPairs.forEach(([left, right]) => {
-    [...variants].forEach((variant) => {
-      if (variant.includes(left)) variants.add(replaceAllText(variant, left, right));
-      if (variant.includes(right)) variants.add(replaceAllText(variant, right, left));
-    });
-  });
-  return [...variants].filter(Boolean);
-}
-
-function normalizeRomajiText(value) {
-  return String(value || "")
-    .normalize("NFKD")
-    .replace(/\p{M}/gu, "")
-    .toLocaleLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function romajiToHiragana(value) {
-  const text = normalizeRomajiText(value);
-  let result = "";
-  let index = 0;
-
-  while (index < text.length) {
-    const char = text[index];
-    const next = text[index + 1] || "";
-
-    if (char === " ") {
-      result += " ";
-      index += 1;
-      continue;
-    }
-
-    if (!/[a-z]/.test(char)) {
-      result += char;
-      index += 1;
-      continue;
-    }
-
-    if (char === next && char !== "n" && isRomajiConsonant(char)) {
-      result += "っ";
-      index += 1;
-      continue;
-    }
-
-    if (char === "n" && shouldUseStandaloneN(text, index)) {
-      result += "ん";
-      index += next === "'" ? 2 : 1;
-      continue;
-    }
-
-    const key = romajiKanaKeys.find((candidate) => text.startsWith(candidate, index));
-    if (key) {
-      result += romajiKanaMap[key];
-      index += key.length;
-      continue;
-    }
-
-    result += char;
-    index += 1;
-  }
-
-  return result.replace(/\s+/g, " ").trim();
-}
-
-function shouldUseStandaloneN(text, index) {
-  const next = text[index + 1] || "";
-  if (!next || next === " " || next === "'") return true;
-  return !/[aiueoy]/.test(next);
-}
-
-function isRomajiConsonant(char) {
-  return /[bcdfghjklmnpqrstvwxyz]/.test(char);
-}
-
-function hiraganaToKatakana(value) {
-  return String(value || "").replace(/[\u3041-\u3096]/g, (char) => (
-    String.fromCharCode(char.charCodeAt(0) + 0x60)
-  ));
-}
-
-function normalizeSearchText(value) {
-  const folded = String(value || "")
-    .normalize("NFKD")
-    .replace(/\p{M}/gu, "")
-    .normalize("NFKC")
-    .toLocaleLowerCase()
-    .replace(/[\u30a1-\u30f6]/g, (char) => (
-      String.fromCharCode(char.charCodeAt(0) - 0x60)
-    ))
-    .replace(/[\u30fc\uff70]/g, "")
-    .replace(/[_\-./=]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  return folded;
-}
-
-function compactSearchText(value) {
-  return String(value || "").replace(/\s+/g, "");
-}
-
-function replaceAllText(value, search, replacement) {
-  return String(value).split(search).join(replacement);
+  return fileName.split("/").pop().replace(/\.[^.]+$/, "");
 }
 
 function getCustomIdolCard(idol) {
@@ -2425,393 +1915,6 @@ function preloadUpcomingImages() {
   });
 }
 
-function generateDistractors(question, difficulty) {
-  const settings = getDifficultyChoiceSettings(difficulty);
-  const targetDistractorCount = settings.distractorCount;
-  const correctHex = question.hex.toLowerCase();
-  const base = question.hsl;
-  const distanceRules = getVisualDistanceRules(difficulty, base);
-  const colors = new Set();
-
-  const addColor = (hex, relaxation = 0, rulesOverride = distanceRules) => {
-    const normalized = hex.toLowerCase();
-    if (
-      normalized !== correctHex
-      && !colors.has(normalized)
-      && isVisuallyDistinctChoice(normalized, correctHex, [...colors], rulesOverride, relaxation)
-    ) {
-      colors.add(normalized);
-      return true;
-    }
-    return false;
-  };
-
-  if (settings.useHairTrap) {
-    addHairTrapColor(question, addColor, difficulty);
-  }
-
-  if (difficulty === "easy") {
-    fillGenerated(colors, targetDistractorCount, () => {
-      const hue = base.h + randomBetween(70, 290);
-      const saturation = randomBetween(52, 88);
-      const lightness = randomBetween(34, 76);
-      return hslToHex(hue, saturation, lightness);
-    }, addColor);
-  } else if (difficulty === "normal") {
-    fillGenerated(colors, targetDistractorCount, () => {
-      const hueShift = randomBetween(30, 44) * randomSign();
-      const saturationShift = randomBetween(12, 22) * randomSign();
-      const lightnessShift = randomBetween(12, 22) * randomSign();
-      return hslToHex(
-        base.h + hueShift,
-        clamp(base.s + saturationShift, 18, 94),
-        clamp(base.l + lightnessShift, 18, 88)
-      );
-    }, addColor);
-  } else if (difficulty === "hard") {
-    fillGenerated(colors, targetDistractorCount, () => {
-      const mode = ["hue", "tone", "mixed"][Math.floor(Math.random() * 3)];
-      const hueShift = randomBetween(14, 24) * randomSign();
-      const saturationShift = randomBetween(8, 18) * randomSign();
-      const lightnessShift = randomBetween(8, 16) * randomSign();
-
-      if (mode === "hue") {
-        return hslToHex(base.h + hueShift, base.s, base.l);
-      }
-
-      if (mode === "tone") {
-        return hslToHex(
-          base.h,
-          clamp(base.s + saturationShift, 10, 96),
-          clamp(base.l + lightnessShift, 14, 92)
-        );
-      }
-
-      return hslToHex(
-        base.h + hueShift,
-        clamp(base.s + saturationShift, 10, 96),
-        clamp(base.l + lightnessShift, 14, 92)
-      );
-    }, addColor);
-  } else {
-    let realTrapCount = 0;
-    const realTrapTarget = 2;
-    closestRealColors(question, 8).forEach((hex) => {
-      if (realTrapCount < realTrapTarget && addColor(hex)) {
-        realTrapCount += 1;
-      }
-    });
-
-    fillGenerated(colors, targetDistractorCount, () => {
-      const mode = ["hue", "tone", "mixed"][Math.floor(Math.random() * 3)];
-      const hueShift = randomBetween(5, 10) * randomSign();
-      const saturationShift = randomBetween(5, 10) * randomSign();
-      const lightnessShift = randomBetween(5, 10) * randomSign();
-
-      if (mode === "hue") {
-        return hslToHex(base.h + hueShift, base.s, base.l);
-      }
-
-      if (mode === "tone") {
-        return hslToHex(
-          base.h,
-          clamp(base.s + saturationShift, 8, 96),
-          clamp(base.l + lightnessShift, 12, 92)
-        );
-      }
-
-      return hslToHex(
-        base.h + hueShift,
-        clamp(base.s + saturationShift, 8, 96),
-        clamp(base.l + lightnessShift, 12, 92)
-      );
-    }, addColor);
-  }
-
-  return [...colors].slice(0, targetDistractorCount);
-}
-
-function getDifficultyChoiceSettings(difficulty) {
-  if (difficulty === "easy") {
-    return { distractorCount: 4, useHairTrap: false };
-  }
-
-  return { distractorCount: 5, useHairTrap: true };
-}
-
-function addHairTrapColor(question, addColor, difficulty) {
-  const hairTrapRules = getHairTrapDistanceRules(difficulty, question.hsl);
-
-  for (let attempt = 0; attempt < 96; attempt += 1) {
-    if (addColor(makeHairTrapColor(question, attempt), 0, hairTrapRules)) return true;
-  }
-
-  const hair = question.hairHsl || {
-    h: question.hsl.h + 34,
-    s: clamp(question.hsl.s - 18, 12, 76),
-    l: clamp(question.hsl.l - 16, 14, 72)
-  };
-
-  for (let attempt = 0; attempt < 48; attempt += 1) {
-    const hueShift = randomBetween(16, 34) * randomSign();
-    const saturationShift = randomBetween(10, 24) * randomSign();
-    const lightnessShift = randomBetween(10, 24) * randomSign();
-    const candidate = hslToHex(
-      hair.h + hueShift,
-      clamp(hair.s + saturationShift, 10, 92),
-      clamp(hair.l + lightnessShift, 10, 88)
-    );
-
-    if (addColor(candidate, 0, hairTrapRules)) return true;
-  }
-
-  return false;
-}
-
-function makeHairTrapColor(question, attempt = 0) {
-  const hair = question.hairHsl || {
-    h: question.hsl.h + 34,
-    s: clamp(question.hsl.s - 18, 12, 76),
-    l: clamp(question.hsl.l - 16, 14, 72)
-  };
-  const hueRange = attempt < 16 ? 4 : attempt < 48 ? 12 : 22;
-  const toneRange = attempt < 16 ? 6 : attempt < 48 ? 14 : 22;
-  let candidate = hslToHex(
-    hair.h + randomBetween(-hueRange, hueRange),
-    clamp(hair.s + randomBetween(-toneRange, toneRange), 10, 92),
-    clamp(hair.l + randomBetween(-toneRange, toneRange), 10, 88)
-  );
-
-  if (candidate.toLowerCase() === question.hex.toLowerCase()) {
-    candidate = hslToHex(hair.h + 12, clamp(hair.s + 4, 10, 92), clamp(hair.l - 6, 10, 88));
-  }
-
-  return candidate;
-}
-
-function getHairTrapDistanceRules(difficulty, answerHsl) {
-  const rules = getVisualDistanceRules(difficulty, answerHsl);
-  if (difficulty === "very-hard") return rules;
-
-  const { minFromAnswer, minBetweenChoices } = rules;
-  return { minFromAnswer, minBetweenChoices };
-}
-
-function fillGenerated(colors, targetCount, factory, addColor) {
-  let guard = 0;
-  while (colors.size < targetCount && guard < 120) {
-    addColor(factory());
-    guard += 1;
-  }
-
-  let fallbackGuard = 0;
-  while (colors.size < targetCount && fallbackGuard < 220) {
-    addColor(hslToHex(Math.random() * 360, randomBetween(36, 86), randomBetween(28, 80)));
-    fallbackGuard += 1;
-  }
-
-  let relaxedGuard = 0;
-  while (colors.size < targetCount && relaxedGuard < 220) {
-    addColor(hslToHex(Math.random() * 360, randomBetween(36, 86), randomBetween(28, 80)), 4);
-    relaxedGuard += 1;
-  }
-}
-
-function closestRealColors(question, count) {
-  const correctHex = question.hex.toLowerCase();
-  const ranked = enrichedIdols
-    .filter((idol) => idol.no !== question.no && idol.hex.toLowerCase() !== correctHex)
-    .map((idol) => ({
-      idol,
-      hueGap: hueDistance(question.hsl.h, idol.hsl.h),
-      toneGap: Math.abs(question.hsl.s - idol.hsl.s) + Math.abs(question.hsl.l - idol.hsl.l)
-    }))
-    .sort((a, b) => a.hueGap - b.hueGap || a.toneGap - b.toneGap);
-  const picked = ranked.slice(0, 1);
-
-  if (count > 1) {
-    picked.push(...shuffle(ranked.slice(1, 6)).slice(0, count - 1));
-  }
-
-  return picked.map(({ idol }) => idol.hex);
-}
-
-function getVisualDistanceRules(difficulty, answerHsl = null) {
-  let rules;
-
-  if (difficulty === "easy") {
-    rules = { minFromAnswer: 30, minBetweenChoices: 16 };
-  } else if (difficulty === "normal") {
-    rules = { minFromAnswer: 22, minBetweenChoices: 13 };
-  } else if (difficulty === "hard") {
-    rules = { minFromAnswer: 18, minBetweenChoices: 11, maxFromAnswer: 66 };
-  } else {
-    rules = { minFromAnswer: 12, minBetweenChoices: 9, maxFromAnswer: 40 };
-  }
-
-  return applyPrimaryColorDifficultyRelief(rules, difficulty, answerHsl);
-}
-
-function applyPrimaryColorDifficultyRelief(rules, difficulty, answerHsl) {
-  if (difficulty === "easy" || !isVividPrimaryColor(answerHsl)) return rules;
-
-  const reliefByDifficulty = {
-    normal: { minFromAnswer: 5, minBetweenChoices: 3 },
-    hard: { minFromAnswer: 3, minBetweenChoices: 2, maxFromAnswer: 6 },
-    "very-hard": { minFromAnswer: 2, minBetweenChoices: 1, maxFromAnswer: 4 }
-  };
-  const relief = reliefByDifficulty[difficulty] || reliefByDifficulty["very-hard"];
-  const adjusted = {
-    ...rules,
-    minFromAnswer: rules.minFromAnswer + relief.minFromAnswer,
-    minBetweenChoices: rules.minBetweenChoices + relief.minBetweenChoices
-  };
-
-  if (rules.maxFromAnswer) {
-    adjusted.maxFromAnswer = rules.maxFromAnswer + (relief.maxFromAnswer || 0);
-  }
-
-  return adjusted;
-}
-
-function isVividPrimaryColor(hsl) {
-  if (!hsl || hsl.s < 62 || hsl.l < 24 || hsl.l > 82) return false;
-
-  const primaryHues = [0, 60, 120, 180, 240, 300];
-  return primaryHues.some((primaryHue) => primaryHueDistance(hsl.h, primaryHue) <= 18);
-}
-
-function primaryHueDistance(a, b) {
-  const diff = Math.abs(a - b) % 360;
-  return Math.min(diff, 360 - diff);
-}
-
-function isVisuallyDistinctChoice(candidateHex, correctHex, selectedHexes, rules, relaxation = 0) {
-  const minFromAnswer = Math.max(10, rules.minFromAnswer - relaxation);
-  const minBetweenChoices = Math.max(7, rules.minBetweenChoices - relaxation);
-  const distanceFromAnswer = perceptualColorDistance(candidateHex, correctHex);
-
-  if (distanceFromAnswer < minFromAnswer) {
-    return false;
-  }
-
-  if (rules.maxFromAnswer && distanceFromAnswer > rules.maxFromAnswer + relaxation * 2) {
-    return false;
-  }
-
-  return selectedHexes.every((hex) => perceptualColorDistance(candidateHex, hex) >= minBetweenChoices);
-}
-
-function perceptualColorDistance(hexA, hexB) {
-  const a = rgbToLab(hexToRgb(hexA));
-  const b = rgbToLab(hexToRgb(hexB));
-  return Math.hypot(a.l - b.l, a.a - b.a, a.b - b.b);
-}
-
-function rgbToLab({ r, g, b }) {
-  const linearR = srgbToLinear(r / 255);
-  const linearG = srgbToLinear(g / 255);
-  const linearB = srgbToLinear(b / 255);
-
-  const x = (0.4124 * linearR + 0.3576 * linearG + 0.1805 * linearB) / 0.95047;
-  const y = (0.2126 * linearR + 0.7152 * linearG + 0.0722 * linearB);
-  const z = (0.0193 * linearR + 0.1192 * linearG + 0.9505 * linearB) / 1.08883;
-
-  const fx = labPivot(x);
-  const fy = labPivot(y);
-  const fz = labPivot(z);
-
-  return {
-    l: 116 * fy - 16,
-    a: 500 * (fx - fy),
-    b: 200 * (fy - fz)
-  };
-}
-
-function srgbToLinear(value) {
-  return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-}
-
-function labPivot(value) {
-  return value > 0.008856 ? Math.cbrt(value) : 7.787 * value + 16 / 116;
-}
-
-function hexToRgb(hex) {
-  const normalized = hex.replace("#", "").trim();
-  const value = parseInt(normalized.length === 3 ? normalized.split("").map((c) => c + c).join("") : normalized, 16);
-  return {
-    r: (value >> 16) & 255,
-    g: (value >> 8) & 255,
-    b: value & 255
-  };
-}
-
-function rgbToHsl(r, g, b) {
-  r /= 255;
-  g /= 255;
-  b /= 255;
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  let h = 0;
-  let s = 0;
-  const l = (max + min) / 2;
-
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
-    if (max === g) h = (b - r) / d + 2;
-    if (max === b) h = (r - g) / d + 4;
-    h *= 60;
-  }
-
-  return { h, s: s * 100, l: l * 100 };
-}
-
-function hexToHsl(hex) {
-  const { r, g, b } = hexToRgb(hex);
-  return rgbToHsl(r, g, b);
-}
-
-function hslToRgb(h, s, l) {
-  h = ((h % 360) + 360) % 360;
-  s = clamp(s, 0, 100) / 100;
-  l = clamp(l, 0, 100) / 100;
-  const c = (1 - Math.abs(2 * l - 1)) * s;
-  const x = c * (1 - Math.abs((h / 60) % 2 - 1));
-  const m = l - c / 2;
-  let r = 0;
-  let g = 0;
-  let b = 0;
-
-  if (h < 60) [r, g, b] = [c, x, 0];
-  else if (h < 120) [r, g, b] = [x, c, 0];
-  else if (h < 180) [r, g, b] = [0, c, x];
-  else if (h < 240) [r, g, b] = [0, x, c];
-  else if (h < 300) [r, g, b] = [x, 0, c];
-  else [r, g, b] = [c, 0, x];
-
-  return {
-    r: Math.round((r + m) * 255),
-    g: Math.round((g + m) * 255),
-    b: Math.round((b + m) * 255)
-  };
-}
-
-function hslToHex(h, s, l) {
-  const { r, g, b } = hslToRgb(h, s, l);
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
-
-function toHex(value) {
-  return clamp(Math.round(value), 0, 255).toString(16).padStart(2, "0");
-}
-
-function hueDistance(a, b) {
-  const diff = Math.abs(a - b) % 360;
-  return Math.min(diff, 360 - diff);
-}
-
 function makeFallbackBackground(hex) {
   const { h, s, l } = hexToHsl(hex);
   const darker = hslToHex(h, clamp(s + 8, 15, 95), clamp(l - 18, 16, 58));
@@ -2826,29 +1929,4 @@ function getScorePercent(score, maxScore) {
 
 function getResultMessage(percent) {
   return percent >= 80 ? getDictionary().resultMessages.perfect : "";
-}
-
-function shuffle(items) {
-  const copied = [...items];
-  for (let i = copied.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copied[i], copied[j]] = [copied[j], copied[i]];
-  }
-  return copied;
-}
-
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
-}
-
-function randomBetween(min, max) {
-  return min + Math.random() * (max - min);
-}
-
-function randomInteger(min, max) {
-  return Math.floor(randomBetween(min, max + 1));
-}
-
-function randomSign() {
-  return Math.random() < 0.5 ? -1 : 1;
 }

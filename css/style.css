@@ -2,21 +2,21 @@
    Neutral, gallery-like chrome so the idols' colors stay the loudest thing on screen. */
 @font-face {
   font-family: "Quiz Sans";
-  src: url("assets/fonts/quiz-latin.woff2?v=2.3") format("woff2");
+  src: url("../assets/fonts/quiz-latin.woff2?v=2.3") format("woff2");
   font-weight: 100 900;
   font-display: swap;
   unicode-range: U+0000-024F, U+2000-206F, U+20A0-20CF;
 }
 @font-face {
   font-family: "Quiz Sans";
-  src: url("assets/fonts/quiz-korean.woff2?v=2.3") format("woff2");
+  src: url("../assets/fonts/quiz-korean.woff2?v=2.3") format("woff2");
   font-weight: 100 900;
   font-display: swap;
   unicode-range: U+1100-11FF, U+3130-318F, U+AC00-D7A3;
 }
 @font-face {
   font-family: "Quiz Sans";
-  src: url("assets/fonts/quiz-japanese.woff2?v=2.3") format("woff2");
+  src: url("../assets/fonts/quiz-japanese.woff2?v=2.3") format("woff2");
   font-weight: 100 900;
   font-display: swap;
   unicode-range: U+3000-30FF, U+3400-4DBF, U+4E00-9FFF, U+FF00-FFEF;
@@ -220,8 +220,7 @@ code { font-family: var(--font-mono); }
   width: 16px;
   height: 16px;
   background: currentColor;
-  -webkit-mask: url("assets/icons/ui/book-open.svg") center / contain no-repeat;
-  mask: url("assets/icons/ui/book-open.svg") center / contain no-repeat;
+  --icon: url("../assets/icons/ui/book-open.svg");
 }
 .language-toggle {
   display: flex;
@@ -258,9 +257,9 @@ code { font-family: var(--font-mono); }
   background-position: center;
   box-shadow: 0 0 0 1px var(--line);
 }
-.flag-kr { background-image: url("assets/icons/flag-kr.svg"); }
-.flag-jp { background-image: url("assets/icons/flag-jp.svg"); }
-.flag-en { background-image: url("assets/icons/flag-en.svg"); }
+.flag-kr { background-image: url("../assets/icons/flag-kr.svg"); }
+.flag-jp { background-image: url("../assets/icons/flag-jp.svg"); }
+.flag-en { background-image: url("../assets/icons/flag-en.svg"); }
 .theme-toggle {
   display: grid;
   place-items: center;
@@ -278,10 +277,9 @@ code { font-family: var(--font-mono); }
   width: 17px;
   height: 17px;
   background: currentColor;
-  -webkit-mask: url("assets/icons/ui/sun.svg") center / contain no-repeat;
-  mask: url("assets/icons/ui/sun.svg") center / contain no-repeat;
+  --icon: url("../assets/icons/ui/sun.svg");
 }
-html[data-theme="dark"] .theme-toggle::before { -webkit-mask-image: url("assets/icons/ui/moon.svg"); mask-image: url("assets/icons/ui/moon.svg"); }
+html[data-theme="dark"] .theme-toggle::before { --icon: url("../assets/icons/ui/moon.svg"); }
 
 .back-button {
   display: inline-flex;
@@ -304,8 +302,7 @@ html[data-theme="dark"] .theme-toggle::before { -webkit-mask-image: url("assets/
   height: 16px;
   flex: 0 0 auto;
   background: currentColor;
-  -webkit-mask: url("assets/icons/ui/arrow-left.svg") center / contain no-repeat;
-  mask: url("assets/icons/ui/arrow-left.svg") center / contain no-repeat;
+  --icon: url("../assets/icons/ui/arrow-left.svg");
   transition: transform var(--normal) var(--ease);
 }
 
@@ -335,12 +332,11 @@ html[data-theme="dark"] .save-button { box-shadow: 0 10px 30px -12px rgb(255 255
   height: 18px;
   flex: 0 0 auto;
   background: currentColor;
-  -webkit-mask: url("assets/icons/ui/arrow-right.svg") center / contain no-repeat;
-  mask: url("assets/icons/ui/arrow-right.svg") center / contain no-repeat;
+  --icon: url("../assets/icons/ui/arrow-right.svg");
   transition: transform var(--normal) var(--ease);
 }
 .primary-button:disabled, .save-button:disabled { opacity: .4; cursor: not-allowed; box-shadow: none; }
-.ghost-button, .secondary-button {
+.ghost-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -352,6 +348,24 @@ html[data-theme="dark"] .save-button { box-shadow: 0 10px 30px -12px rgb(255 255
   color: var(--ink-2);
   font-size: 13px;
   font-weight: 650;
+}
+
+/* Monochrome UI icons: each element names its glyph in --icon and paints it with background. */
+.guide-entry::before,
+.theme-toggle::before,
+.back-button::before,
+.primary-button::after, .next-button::after,
+.series-grid .choice-label::before,
+.custom-search-symbol,
+.guide-copy::after,
+.result-actions .save-button::before,
+.wrong-note-expand::after,
+.wrong-note-card::after,
+.result-preview-close::before, .wrong-note-close::before,
+.feedback-mark::before,
+.report-answer-mark {
+  -webkit-mask: var(--icon) center / contain no-repeat;
+  mask: var(--icon) center / contain no-repeat;
 }
 
 /* Series identity badges keep the brands' own colors. */
@@ -567,8 +581,7 @@ body.is-modal-open .swatch-ribbon-track { animation-play-state: paused; }
   background: var(--primary-ink);
   opacity: 0;
   transform: scale(.4);
-  -webkit-mask: url("assets/icons/ui/check.svg") center / contain no-repeat;
-  mask: url("assets/icons/ui/check.svg") center / contain no-repeat;
+  --icon: url("../assets/icons/ui/check.svg");
   transition: opacity var(--fast) ease, transform var(--normal) var(--ease-spring);
 }
 .series-grid .choice-label:has(input:checked) {
@@ -824,8 +837,7 @@ html[data-theme="dark"] .custom-filter-chip.is-selected { background: var(--surf
   height: 17px;
   flex: 0 0 auto;
   background: var(--muted);
-  -webkit-mask: url("assets/icons/ui/search.svg") center / contain no-repeat;
-  mask: url("assets/icons/ui/search.svg") center / contain no-repeat;
+  --icon: url("../assets/icons/ui/search.svg");
 }
 .custom-search-input {
   width: 100%;
@@ -1251,13 +1263,13 @@ html[data-theme="dark"] .custom-filter-chip.is-selected { background: var(--surf
   font-size: 0;
   box-shadow: 0 10px 30px -8px rgb(0 0 0 / 35%);
 }
-.feedback-mark::before { content: ""; width: 18px; height: 18px; background: currentColor; -webkit-mask: center / contain no-repeat; mask: center / contain no-repeat; }
+.feedback-mark::before { content: ""; width: 18px; height: 18px; background: currentColor; }
 .feedback-mark::after { font-size: 13px; font-weight: 800; letter-spacing: .16em; }
 .feedback.is-correct .feedback-mark { background: var(--positive); }
-.feedback.is-correct .feedback-mark::before { -webkit-mask-image: url("assets/icons/ui/check.svg"); mask-image: url("assets/icons/ui/check.svg"); }
+.feedback.is-correct .feedback-mark::before { --icon: url("../assets/icons/ui/check.svg"); }
 .feedback.is-correct .feedback-mark::after { content: "GREAT"; }
 .feedback.is-wrong .feedback-mark { background: var(--negative); }
-.feedback.is-wrong .feedback-mark::before { -webkit-mask-image: url("assets/icons/ui/x.svg"); mask-image: url("assets/icons/ui/x.svg"); }
+.feedback.is-wrong .feedback-mark::before { --icon: url("../assets/icons/ui/x.svg"); }
 .feedback.is-wrong .feedback-mark::after { content: "MISS"; }
 
 /* ───────────────────────── Guide ───────────────────────── */
@@ -1351,11 +1363,10 @@ html[data-theme="dark"] .custom-filter-chip.is-selected { background: var(--surf
   height: 15px;
   flex: 0 0 auto;
   background: var(--muted);
-  -webkit-mask: url("assets/icons/ui/copy.svg") center / contain no-repeat;
-  mask: url("assets/icons/ui/copy.svg") center / contain no-repeat;
+  --icon: url("../assets/icons/ui/copy.svg");
 }
 .guide-copy.is-copied { color: var(--positive); }
-.guide-copy.is-copied::after { background: var(--positive); -webkit-mask-image: url("assets/icons/ui/check.svg"); mask-image: url("assets/icons/ui/check.svg"); }
+.guide-copy.is-copied::after { background: var(--positive); --icon: url("../assets/icons/ui/check.svg"); }
 .guide-empty { padding: 96px 20px; color: var(--muted); text-align: center; font-size: 15px; }
 
 /* ───────────────────────── Result ───────────────────────── */
@@ -1501,8 +1512,8 @@ html[data-theme="dark"] #resultScreen {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
-.report-answer-mark { display: block; width: 12px; height: 12px; background: var(--positive); -webkit-mask: url("assets/icons/ui/check.svg") center / contain no-repeat; mask: url("assets/icons/ui/check.svg") center / contain no-repeat; }
-.is-missed .report-answer-mark { background: currentColor; -webkit-mask-image: url("assets/icons/ui/x.svg"); mask-image: url("assets/icons/ui/x.svg"); }
+.report-answer-mark { display: block; width: 12px; height: 12px; background: var(--positive); --icon: url("../assets/icons/ui/check.svg"); }
+.is-missed .report-answer-mark { background: currentColor; --icon: url("../assets/icons/ui/x.svg"); }
 .is-missed .report-token-label, .is-missed .report-pick-status { color: var(--report-accent); }
 .report-picks { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .report-pick {
@@ -1570,8 +1581,7 @@ html[data-theme="dark"] #resultScreen {
   height: 18px;
   flex: 0 0 auto;
   background: currentColor;
-  -webkit-mask: url("assets/icons/ui/maximize-2.svg") center / contain no-repeat;
-  mask: url("assets/icons/ui/maximize-2.svg") center / contain no-repeat;
+  --icon: url("../assets/icons/ui/maximize-2.svg");
 }
 .result-actions .ghost-button { min-height: 52px; border-radius: var(--radius); font-size: 15px; }
 .result-side { grid-area: notes; min-width: 0; }
@@ -1600,8 +1610,7 @@ html[data-theme="dark"] #resultScreen {
   width: 13px;
   height: 13px;
   background: currentColor;
-  -webkit-mask: url("assets/icons/ui/maximize-2.svg") center / contain no-repeat;
-  mask: url("assets/icons/ui/maximize-2.svg") center / contain no-repeat;
+  --icon: url("../assets/icons/ui/maximize-2.svg");
 }
 .wrong-note-list { display: grid; max-height: 420px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
 .wrong-note-card {
@@ -1624,8 +1633,7 @@ html[data-theme="dark"] #resultScreen {
   width: 16px;
   height: 16px;
   background: var(--faint);
-  -webkit-mask: url("assets/icons/ui/arrow-right.svg") center / contain no-repeat;
-  mask: url("assets/icons/ui/arrow-right.svg") center / contain no-repeat;
+  --icon: url("../assets/icons/ui/arrow-right.svg");
   transition: transform var(--normal) var(--ease), background-color var(--fast) ease;
 }
 .wrong-note-card:focus-visible { outline-offset: -2px; }
@@ -1715,8 +1723,7 @@ html[data-theme="dark"] #resultScreen {
   width: 18px;
   height: 18px;
   background: currentColor;
-  -webkit-mask: url("assets/icons/ui/x.svg") center / contain no-repeat;
-  mask: url("assets/icons/ui/x.svg") center / contain no-repeat;
+  --icon: url("../assets/icons/ui/x.svg");
 }
 .result-preview-card img {
   display: block;

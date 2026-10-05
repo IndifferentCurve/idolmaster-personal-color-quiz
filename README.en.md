@@ -30,6 +30,27 @@ python -m http.server 8765
 
 Open `http://localhost:8765/` in your browser.
 
+## Project structure
+
+```
+index.html            Page markup
+css/style.css         Design tokens, layout, themes
+js/lang.js            Korean, Japanese and English strings
+js/color.js           Color conversion, perceptual distance (CIELAB)
+js/search.js          Name, kana and romaji search
+js/choices.js         Choice colors per difficulty
+js/app.js             Game flow, screens, scoring
+js/guide.js           Color guide, illustration details
+js/result-report.js   Result report, share image
+js/ui.js              Home color strip, number-key picks
+data/series/*.js      Idol data per series
+data/quiz-data.js     Combines the series data
+assets/               Illustrations, faces, fonts, icons
+reference_assets/     Source and processing files (not deployed)
+```
+
+Scripts are plain (non-module) scripts loaded in the order listed in `index.html`, with no build step. Keep that order when adding files.
+
 ## Sources
 
 | Material | Source |

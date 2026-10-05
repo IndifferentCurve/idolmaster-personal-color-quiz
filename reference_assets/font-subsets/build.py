@@ -13,7 +13,7 @@ def main():
     parser.add_argument("--jp", type=Path, required=True, help="Noto Sans JP variable TTF")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
-    sources = [*root.glob("*.js"), *(root / "data").rglob("*.js"), root / "index.html"]
+    sources = [*(root / "js").glob("*.js"), *(root / "data").rglob("*.js"), root / "index.html"]
     characters = {ord(char) for file in sources for char in file.read_text(encoding="utf-8")}
     groups = [
         ("latin", args.kr, [(0x20, 0x24F), (0x2000, 0x206F), (0x20A0, 0x20CF)]),

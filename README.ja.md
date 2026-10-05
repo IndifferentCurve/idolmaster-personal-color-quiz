@@ -30,6 +30,27 @@ python -m http.server 8765
 
 ブラウザで `http://localhost:8765/` を開きます。
 
+## 構成
+
+```
+index.html            画面のマークアップ
+css/style.css         デザイントークン・レイアウト・テーマ
+js/lang.js            韓国語・日本語・英語の文言
+js/color.js           色変換・知覚色差（CIELAB）
+js/search.js          名前・かな・ローマ字検索
+js/choices.js         難易度別の選択肢の色生成
+js/app.js             ゲーム進行・画面遷移・スコア
+js/guide.js           カラーガイド・イラスト詳細
+js/result-report.js   結果レポート・共有画像
+js/ui.js              メインのカラーストリップ・数字キー選択
+data/series/*.js      シリーズ別アイドルデータ
+data/quiz-data.js     シリーズデータの統合
+assets/               イラスト・顔・フォント・アイコン
+reference_assets/     元素材・加工資料（デプロイ対象外）
+```
+
+スクリプトはビルド不要の通常スクリプトで、`index.html` に書かれた順に読み込まれます。ファイルを追加するときはこの順序を守ってください。
+
 ## 出典
 
 | 項目 | 出典 |
