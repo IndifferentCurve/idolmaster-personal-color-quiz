@@ -430,7 +430,8 @@ window.IdolmasterResultReport = (() => {
     strokeRoundRect(ctx, 32.5, 32.5, width - 65, height - 65, 40);
   }
 
-  // A shareable list of every missed question: my pick next to the real image color.
+  // A shareable list of every missed question: each miss is a card that sets
+  // my pick against the real image color in one split chip.
   async function createWrongNoteCanvas() {
     const record = getRecord();
     const misses = state.wrongAnswers;
@@ -440,7 +441,7 @@ window.IdolmasterResultReport = (() => {
     const names = shown.map((item) => getIdolDisplayName(item.idol));
     const labels = {
       title: t("wrongNoteTitle"),
-      summary: `${t("correctSummary", record.correct, record.total)} · ${record.difficulty}`,
+      summary: `${t("correctSummary", record.correct, record.total)} · ${record.difficulty} · ${record.date}`,
       picked: t("wrongSelected"),
       answer: t("wrongAnswer"),
       timeout: t("answerTimeout"),
@@ -454,10 +455,11 @@ window.IdolmasterResultReport = (() => {
     const portraits = await Promise.all(shown.map((item) => loadImage(item.idol.faceImage)));
 
     const width = 1080, left = 80, right = width - 80;
-    const listTop = 236, rowHeight = 128;
-    const moreHeight = labels.more ? 64 : 0;
-    const footerTop = listTop + shown.length * rowHeight + moreHeight + 24;
-    const height = footerTop + 132;
+    const listTop = 268, cardHeight = 132, cardGap = 14;
+    const listHeight = shown.length * cardHeight + Math.max(0, shown.length - 1) * cardGap;
+    const moreHeight = labels.more ? 68 : 0;
+    const footerTop = listTop + listHeight + moreHeight + 40;
+    const height = footerTop + 140;
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
@@ -473,67 +475,114 @@ window.IdolmasterResultReport = (() => {
       ctx.font = `${weight} ${size}px ${appFontStack}`;
       ctx.fillText(String(value), x, y);
     };
-    const rule = (y, dashed = false) => {
+    const rule = (y) => {
       ctx.save();
       ctx.strokeStyle = colors.rule;
       ctx.lineWidth = 1;
-      ctx.setLineDash(dashed ? [3, 6] : []);
       ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(right, y); ctx.stroke();
       ctx.restore();
     };
-    // One color block with its label above and HEX below; a timeout gets a dashed empty block.
-    const swatch = (x, label, hex, labelColor) => {
-      const w = 150;
-      text(label, x, 0, 17, 650, labelColor);
-      if (hex) {
-        drawRoundRect(ctx, x, 14, w, 44, 10, hex);
-        ctx.strokeStyle = colors.rule; ctx.lineWidth = 1;
-        strokeRoundRect(ctx, x, 14, w, 44, 10);
-        text(formatHex(hex), x, 84, 18, 600, colors.muted);
-      } else {
+
+    // Header: title on the left, the miss count as the headline number on the right.
+    text("THE IDOLM@STER", left, 100, 18, 750, colors.muted);
+    text(labels.title, left, 160, 46, 800);
+    text(labels.summary, left, 206, 21, 550, colors.muted);
+    text(String(misses.length), right, 176, 84, 800, colors.accent, "right");
+    text("MISSED", right, 210, 15, 800, colors.muted, "right");
+    rule(236);
+
+    // The comparison chip: left half is my pick, right half the answer, an arrow between.
+    const chipWidth = 300, chipHeight = 56;
+    const drawComparison = (x, y, item) => {
+      const half = chipWidth / 2;
+      ctx.save();
+      addRoundRectPath(ctx, x, y, chipWidth, chipHeight, 16);
+      ctx.clip();
+      ctx.fillStyle = item.timedOut ? colors.paper : item.selectedHex;
+      ctx.fillRect(x, y, half, chipHeight);
+      ctx.fillStyle = item.answerHex;
+      ctx.fillRect(x + half, y, half, chipHeight);
+      ctx.restore();
+      if (item.timedOut) {
         ctx.save();
         ctx.strokeStyle = colors.accent; ctx.lineWidth = 2; ctx.setLineDash([6, 6]);
-        strokeRoundRect(ctx, x + 1, 15, w - 2, 42, 10);
+        ctx.beginPath(); ctx.moveTo(x + half, y + 1); ctx.lineTo(x + 16, y + 1);
+        ctx.quadraticCurveTo(x + 1, y + 1, x + 1, y + 16); ctx.lineTo(x + 1, y + chipHeight - 16);
+        ctx.quadraticCurveTo(x + 1, y + chipHeight - 1, x + 16, y + chipHeight - 1); ctx.lineTo(x + half, y + chipHeight - 1);
+        ctx.stroke();
         ctx.restore();
-        text(labels.timeout, x + w / 2, 43, 17, 750, colors.accent, "center");
+        text(labels.timeout, x + half / 2 - 8, y + chipHeight / 2 + 6, 16, 750, colors.accent, "center");
       }
+      ctx.strokeStyle = colors.rule; ctx.lineWidth = 1;
+      strokeRoundRect(ctx, x + 0.5, y + 0.5, chipWidth - 1, chipHeight - 1, 16);
+
+      const cx = x + half, cy = y + chipHeight / 2;
+      ctx.save();
+      ctx.shadowColor = "rgba(0, 0, 0, 0.18)"; ctx.shadowBlur = 8; ctx.shadowOffsetY = 2;
+      ctx.beginPath(); ctx.arc(cx, cy, 17, 0, Math.PI * 2);
+      ctx.fillStyle = colors.paper; ctx.fill();
+      ctx.restore();
+      ctx.save();
+      ctx.strokeStyle = colors.ink; ctx.lineWidth = 2.5; ctx.lineCap = "round"; ctx.lineJoin = "round";
+      ctx.beginPath();
+      ctx.moveTo(cx - 6, cy); ctx.lineTo(cx + 6, cy);
+      ctx.moveTo(cx + 1, cy - 5); ctx.lineTo(cx + 6, cy); ctx.lineTo(cx + 1, cy + 5);
+      ctx.stroke();
+      ctx.restore();
+
+      text(labels.picked, x, y - 10, 15, 650, colors.muted);
+      text(labels.answer, x + chipWidth, y - 10, 15, 750, colors.ink, "right");
+      if (!item.timedOut) text(formatHex(item.selectedHex), x, y + chipHeight + 24, 16, 600, colors.muted);
+      text(formatHex(item.answerHex), x + chipWidth, y + chipHeight + 24, 16, 750, colors.ink, "right");
     };
 
-    text("THE IDOLM@STER", left, 96, 18, 750, colors.muted);
-    text(labels.title, left, 146, 40, 800);
-    text(record.date, right, 146, 23, 600, colors.muted, "right");
-    text(labels.summary, left, 192, 22, 550, colors.muted);
-    text(String(misses.length), right, 192, 22, 800, colors.accent, "right");
-    rule(214);
-
     shown.forEach((item, index) => {
-      const top = listTop + index * rowHeight;
-      const centerY = top + rowHeight / 2;
+      const top = listTop + index * (cardHeight + cardGap);
+      const cy = top + cardHeight / 2;
+      drawRoundRect(ctx, left, top, right - left, cardHeight, 26, colors.wash);
+
+      text(String(index + 1).padStart(2, "0"), left + 28, cy + 7, 19, 650, colors.muted);
+
+      // Avatar ringed in the color the player should have picked.
+      const ax = left + 112;
+      ctx.beginPath(); ctx.arc(ax, cy, 45, 0, Math.PI * 2);
+      ctx.fillStyle = item.answerHex; ctx.fill();
+      ctx.beginPath(); ctx.arc(ax, cy, 41, 0, Math.PI * 2);
+      ctx.fillStyle = colors.paper; ctx.fill();
       ctx.save();
-      ctx.beginPath(); ctx.arc(left + 40, centerY, 40, 0, Math.PI * 2); ctx.clip();
-      ctx.fillStyle = colors.wash; ctx.fillRect(left, centerY - 40, 80, 80);
+      ctx.beginPath(); ctx.arc(ax, cy, 38, 0, Math.PI * 2); ctx.clip();
+      ctx.fillStyle = colors.wash; ctx.fillRect(ax - 38, cy - 38, 76, 76);
       if (portraits[index]) {
-        const fit = containRect(portraits[index].width, portraits[index].height, left, centerY - 40, 80, 80);
+        const fit = containRect(portraits[index].width, portraits[index].height, ax - 38, cy - 38, 76, 76);
         ctx.drawImage(portraits[index], fit.x, fit.y, fit.width, fit.height);
       }
       ctx.restore();
-      ctx.fillStyle = colors.ink; ctx.textAlign = "left";
-      setFittedCanvasFont(ctx, names[index], 330, 750, 30, 20);
-      ctx.fillText(names[index], left + 104, centerY - 4);
-      text(getSeriesLabel(item.idol.series), left + 104, centerY + 30, 18, 550, colors.muted);
 
-      ctx.save();
-      ctx.translate(0, centerY - 36);
-      swatch(right - 330, labels.picked, item.timedOut ? null : item.selectedHex, colors.muted);
-      swatch(right - 150, labels.answer, item.answerHex, colors.ink);
-      ctx.restore();
-      if (index < shown.length - 1) rule(top + rowHeight, true);
+      const chipX = right - 28 - chipWidth;
+      const nameX = ax + 66;
+      ctx.fillStyle = colors.ink; ctx.textAlign = "left";
+      setFittedCanvasFont(ctx, names[index], chipX - 32 - nameX, 750, 30, 19);
+      ctx.fillText(names[index], nameX, cy - 2);
+      text(getSeriesLabel(item.idol.series), nameX, cy + 30, 18, 550, colors.muted);
+
+      drawComparison(chipX, cy - chipHeight / 2 - 4, item);
     });
 
-    if (labels.more) text(labels.more, width / 2, listTop + shown.length * rowHeight + 44, 22, 650, colors.muted, "center");
+    if (labels.more) text(labels.more, width / 2, listTop + listHeight + 50, 22, 650, colors.muted, "center");
+
+    // Footer: the colors that were missed, as a strip, beside the quiz name.
     rule(footerTop);
-    text(labels.footer, left, footerTop + 46, 24, 800);
-    drawCanvasRepository(ctx, repositoryLabel, width / 2, footerTop + 92, colors);
+    text(labels.footer, left, footerTop + 50, 24, 800);
+    const stripWidth = 220, stripX = right - stripWidth;
+    ctx.save();
+    addRoundRectPath(ctx, stripX, footerTop + 30, stripWidth, 24, 12);
+    ctx.clip();
+    shown.forEach((item, index) => {
+      ctx.fillStyle = item.answerHex;
+      ctx.fillRect(stripX + index * stripWidth / shown.length, footerTop + 30, stripWidth / shown.length + 1, 24);
+    });
+    ctx.restore();
+    drawCanvasRepository(ctx, repositoryLabel, width / 2, footerTop + 100, colors);
     return canvas;
   }
 
