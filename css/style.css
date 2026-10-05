@@ -359,6 +359,7 @@ html[data-theme="dark"] .save-button { box-shadow: 0 10px 30px -12px rgb(255 255
 .custom-search-symbol,
 .guide-copy::after,
 .result-actions .save-button::before,
+.wrong-note-share::before,
 .wrong-note-expand::after,
 .wrong-note-card::after,
 .result-preview-close::before, .wrong-note-close::before,
@@ -1593,6 +1594,8 @@ html[data-theme="dark"] #resultScreen {
 }
 .wrong-note-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
 .wrong-note h3 { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; }
+.wrong-note-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.wrong-note-share,
 .wrong-note-expand {
   display: inline-flex;
   align-items: center;
@@ -1604,6 +1607,13 @@ html[data-theme="dark"] #resultScreen {
   color: var(--ink-2);
   font-size: 12px;
   font-weight: 650;
+}
+.wrong-note-share::before {
+  content: "";
+  width: 13px;
+  height: 13px;
+  background: currentColor;
+  --icon: url("../assets/icons/ui/share.svg");
 }
 .wrong-note-expand::after {
   content: "";
@@ -1794,7 +1804,7 @@ html[data-theme="dark"] #resultScreen {
   .custom-idol-card:hover { background: var(--surface-2); }
   .custom-idol-card:hover .custom-idol-avatar { transform: scale(1.04); }
   .custom-idol-card.is-selected:hover .custom-idol-avatar { transform: scale(.96); }
-  .custom-search-clear:hover, .wrong-note-expand:hover, .result-preview-close:hover, .wrong-note-close:hover { background: var(--surface-3); color: var(--ink); }
+  .custom-search-clear:hover, .wrong-note-share:hover:not(:disabled), .wrong-note-expand:hover, .result-preview-close:hover, .wrong-note-close:hover { background: var(--surface-3); color: var(--ink); }
   .color-choice:not(:disabled):hover {
     transform: translateY(-4px);
     box-shadow: inset 0 0 0 1px var(--chip-edge), 0 2px 4px rgb(0 0 0 / 8%), 0 18px 32px -14px rgb(0 0 0 / 45%);

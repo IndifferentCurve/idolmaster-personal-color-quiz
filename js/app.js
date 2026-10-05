@@ -108,6 +108,10 @@ const wrongNoteBackdrop = document.getElementById("wrongNoteBackdrop");
 const wrongNoteCloseButton = document.getElementById("wrongNoteCloseButton");
 const wrongNoteModalTitle = document.getElementById("wrongNoteModalTitle");
 const wrongNoteModalList = document.getElementById("wrongNoteModalList");
+const wrongNoteShareButtons = [
+  document.getElementById("wrongNoteShareButton"),
+  document.getElementById("wrongNoteModalShareButton")
+].filter(Boolean);
 const scoreUnit = document.getElementById("scoreUnit");
 const homeButton = document.getElementById("homeButton");
 const nextButton = document.getElementById("nextButton");
@@ -129,6 +133,8 @@ let customGridRenderFrame = 0;
 let preparedResultBlob = null;
 let preparedResultFileName = "";
 let preparedResultObjectUrl = "";
+let preparedShareKind = "result";
+let preparedShareTrigger = null;
 let questionImageRequestId = 0;
 let questionTimerFrame = 0;
 let questionTimeout = 0;
@@ -261,6 +267,7 @@ questionCountInput.addEventListener("blur", () => {
 startButton.addEventListener("click", startGame);
 resetButton.addEventListener("click", resetGame);
 saveResultButton.addEventListener("click", saveResultImage);
+wrongNoteShareButtons.forEach((button) => button.addEventListener("click", shareWrongNoteImage));
 resultPreviewBackdrop?.addEventListener("click", closeResultPreviewModal);
 resultPreviewCloseButton?.addEventListener("click", closeResultPreviewModal);
 resultPreviewActionButton?.addEventListener("click", sharePreparedResultImage);
@@ -448,6 +455,7 @@ function applyLanguage(language, shouldStore = false) {
   setText(wrongNoteExpandButton, t("wrongNoteExpand"));
   wrongNoteCloseButton?.setAttribute("aria-label", t("wrongNoteClose"));
   setText("#saveResultButton", t("saveResult"));
+  wrongNoteShareButtons.forEach((button) => setText(button, t("wrongNoteShare")));
   setText("#resetButton", t("backToStart"));
   setText(resultPreviewTitle, t("resultImage"));
   resultPreviewCloseButton?.setAttribute("aria-label", t("wrongNoteClose"));
@@ -1169,21 +1177,45 @@ function hideWrongNoteModalImmediately() {
   if (wrongNoteModalList) wrongNoteModalList.innerHTML = "";
 }
 
-async function saveResultImage() {
+// Each shareable image: how to draw it, its file name and the text sent along with it.
+const shareImageKinds = Object.freeze({
+  result: {
+    draw: () => window.IdolmasterResultReport.createCanvas(),
+    fileStem: "result",
+    getText: () => document.getElementById("scoreSummary").textContent
+  },
+  wrongNote: {
+    draw: () => window.IdolmasterResultReport.createWrongNoteCanvas(),
+    fileStem: "missed",
+    getText: () => `${t("wrongNoteTitle")} · ${t("correctSummary", state.correct, state.questions.length)}`
+  }
+});
+
+function saveResultImage() {
+  return prepareShareImage("result", saveResultButton);
+}
+
+function shareWrongNoteImage(event) {
+  return prepareShareImage("wrongNote", event.currentTarget);
+}
+
+async function prepareShareImage(kind, trigger) {
   const requestId = ++resultImageRequestId;
-  const originalText = saveResultButton.textContent;
-  saveResultButton.disabled = true;
-  saveResultButton.textContent = t("saving");
+  const originalText = trigger.textContent;
+  trigger.disabled = true;
+  trigger.textContent = t("saving");
 
   try {
-    const canvas = await createResultCanvas();
+    const canvas = await shareImageKinds[kind].draw();
     const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png", 1));
     if (!blob) throw new Error(t("resultImageError"));
     if (requestId !== resultImageRequestId || !screens.result.classList.contains("is-active")) return;
 
     if (preparedResultObjectUrl) URL.revokeObjectURL(preparedResultObjectUrl);
     preparedResultBlob = blob;
-    preparedResultFileName = getResultFileName();
+    preparedShareKind = kind;
+    preparedShareTrigger = trigger;
+    preparedResultFileName = getShareFileName(kind);
     preparedResultObjectUrl = URL.createObjectURL(blob);
     resultPreviewImage.src = preparedResultObjectUrl;
     resultPreviewActionButton.disabled = false;
@@ -1194,15 +1226,15 @@ async function saveResultImage() {
     window.alert(t("resultSaveError"));
   } finally {
     if (requestId === resultImageRequestId) {
-      saveResultButton.disabled = false;
-      saveResultButton.textContent = originalText;
+      trigger.disabled = false;
+      trigger.textContent = originalText;
     }
   }
 }
 
 async function sharePreparedResultImage() {
   if (!preparedResultBlob) {
-    await saveResultImage();
+    await prepareShareImage(preparedShareKind, preparedShareTrigger || saveResultButton);
     return;
   }
 
@@ -1211,7 +1243,7 @@ async function sharePreparedResultImage() {
   resultPreviewActionButton.textContent = t("saving");
 
   try {
-    await shareOrDownloadResultBlob(preparedResultBlob, preparedResultFileName || getResultFileName());
+    await shareOrDownloadBlob(preparedResultBlob, preparedResultFileName || getShareFileName(preparedShareKind), shareImageKinds[preparedShareKind].getText());
   } catch (error) {
     window.alert(t("resultSaveError"));
   } finally {
@@ -1220,16 +1252,12 @@ async function sharePreparedResultImage() {
   }
 }
 
-async function shareOrDownloadResultBlob(blob, fileName) {
+async function shareOrDownloadBlob(blob, fileName, text) {
   if (navigator.canShare && window.File) {
     const file = new File([blob], fileName, { type: "image/png" });
     if (navigator.canShare({ files: [file] })) {
       try {
-        await navigator.share({
-          files: [file],
-          title: t("shareTitle"),
-          text: document.getElementById("scoreSummary").textContent
-        });
+        await navigator.share({ files: [file], title: t("shareTitle"), text });
         return;
       } catch (error) {
         if (error?.name === "AbortError") return;
@@ -1240,11 +1268,20 @@ async function shareOrDownloadResultBlob(blob, fileName) {
   downloadBlob(blob, fileName);
 }
 
-function getResultFileName() {
+function getShareFileName(kind) {
   const date = new Date(state.resultCompletedAt || Date.now());
   const dateLabel = [date.getFullYear(), date.getMonth() + 1, date.getDate()]
     .map((part, index) => index ? String(part).padStart(2, "0") : part).join("-");
-  return `idolmaster-color-result-${dateLabel}.png`;
+  return `idolmaster-color-${shareImageKinds[kind].fileStem}-${dateLabel}.png`;
+}
+
+function resetShareButtons() {
+  saveResultButton.disabled = false;
+  saveResultButton.textContent = t("saveResult");
+  wrongNoteShareButtons.forEach((button) => {
+    button.disabled = false;
+    button.textContent = t("wrongNoteShare");
+  });
 }
 
 function openResultPreviewModal() {
@@ -1263,10 +1300,13 @@ function closeResultPreviewModal() {
   if (!resultPreview || resultPreview.hidden) return;
 
   resultPreview.classList.remove("is-open");
-  document.body.classList.remove("is-modal-open");
+  if (!wrongNoteModal || wrongNoteModal.hidden) document.body.classList.remove("is-modal-open");
   resultPreviewCloseTimer = window.setTimeout(() => {
     resultPreview.hidden = true;
-    saveResultButton?.focus({ preventScroll: true });
+    const returnTarget = preparedShareTrigger?.isConnected && preparedShareTrigger.getClientRects().length
+      ? preparedShareTrigger
+      : saveResultButton;
+    returnTarget?.focus({ preventScroll: true });
   }, 180);
 }
 
@@ -1282,10 +1322,6 @@ function clearResultPreview() {
   resultPreview.classList.remove("is-open");
   resultPreview.hidden = true;
   if (resultPreviewActionButton) resultPreviewActionButton.disabled = false;
-}
-
-async function createResultCanvas() {
-  return window.IdolmasterResultReport.createCanvas();
 }
 
 function downloadBlob(blob, fileName) {
@@ -1322,8 +1358,7 @@ function resetGame() {
   nextButton.hidden = true;
   if (wrongNoteSection) wrongNoteSection.hidden = true;
   if (wrongNoteList) wrongNoteList.innerHTML = "";
-  saveResultButton.disabled = false;
-  saveResultButton.textContent = t("saveResult");
+  resetShareButtons();
   clearResultPreview();
   showScreen("start");
   updateStartSummary();

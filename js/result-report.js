@@ -6,6 +6,8 @@
   Screen and export share the same completed-game record, never a new sample.
 */
 window.IdolmasterResultReport = (() => {
+  // Large games can miss hundreds; past this many rows the image gets a "N more" line instead.
+  const WRONG_NOTE_CANVAS_LIMIT = 30;
   const spectrumStops = ["#f34f6d", "#f39800", "#ffc30b", "#0fbe94", "#2681c8", "#7ac7ff", "#ff7db7", "#f34f6d"];
 
   // ───── Canvas drawing helpers (private to the export) ─────
@@ -394,14 +396,150 @@ window.IdolmasterResultReport = (() => {
     }));
   }
 
-  async function createCanvas() {
-    const record = getRecord();
+  // Theme tokens shared by both exports, so the images follow light or dark mode.
+  function getCanvasColors() {
     const tokens = getComputedStyle(document.querySelector(".result-report"));
     const colors = Object.fromEntries(["paper", "ink", "muted", "rule", "accent", "wash"].map(key => [key, tokens.getPropertyValue(`--report-${key}`).trim()]));
     colors.text = colors.ink;
     const rootTokens = getComputedStyle(document.documentElement);
     colors.bg = rootTokens.getPropertyValue("--page-bg").trim();
     colors.positive = rootTokens.getPropertyValue("--positive").trim() || colors.ink;
+    return colors;
+  }
+
+  // Rounded paper card with the same spectrum band as the on-screen report.
+  function drawPaperCard(ctx, width, height, colors) {
+    ctx.fillStyle = colors.bg;
+    ctx.fillRect(0, 0, width, height);
+    ctx.save();
+    ctx.shadowColor = "rgba(17, 17, 20, 0.14)";
+    ctx.shadowBlur = 36;
+    ctx.shadowOffsetY = 10;
+    drawRoundRect(ctx, 32, 32, width - 64, height - 64, 40, colors.paper);
+    ctx.restore();
+    ctx.save();
+    addRoundRectPath(ctx, 32, 32, width - 64, height - 64, 40);
+    ctx.clip();
+    const band = ctx.createLinearGradient(32, 0, width - 32, 0);
+    spectrumStops.forEach((color, index) => band.addColorStop(index / (spectrumStops.length - 1), color));
+    ctx.fillStyle = band;
+    ctx.fillRect(32, 32, width - 64, 8);
+    ctx.restore();
+    ctx.strokeStyle = colors.rule;
+    ctx.lineWidth = 1;
+    strokeRoundRect(ctx, 32.5, 32.5, width - 65, height - 65, 40);
+  }
+
+  // A shareable list of every missed question: my pick next to the real image color.
+  async function createWrongNoteCanvas() {
+    const record = getRecord();
+    const misses = state.wrongAnswers;
+    const shown = misses.slice(0, WRONG_NOTE_CANVAS_LIMIT);
+    const remainder = misses.length - shown.length;
+    const colors = getCanvasColors();
+    const names = shown.map((item) => getIdolDisplayName(item.idol));
+    const labels = {
+      title: t("wrongNoteTitle"),
+      summary: `${t("correctSummary", record.correct, record.total)} · ${record.difficulty}`,
+      picked: t("wrongSelected"),
+      answer: t("wrongAnswer"),
+      timeout: t("answerTimeout"),
+      more: remainder > 0 ? t("reportMoreIdols", remainder) : "",
+      footer: t("canvasFooter")
+    };
+    if (document.fonts?.ready) await document.fonts.ready;
+    if (document.fonts?.load) {
+      await document.fonts.load(`700 28px ${appFontStack}`, [...Object.values(labels), ...names].join(" "));
+    }
+    const portraits = await Promise.all(shown.map((item) => loadImage(item.idol.faceImage)));
+
+    const width = 1080, left = 80, right = width - 80;
+    const listTop = 236, rowHeight = 128;
+    const moreHeight = labels.more ? 64 : 0;
+    const footerTop = listTop + shown.length * rowHeight + moreHeight + 24;
+    const height = footerTop + 132;
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    drawPaperCard(ctx, width, height, colors);
+
+    const text = (value, x, y, size, weight, color = colors.ink, align = "left") => {
+      ctx.fillStyle = color;
+      ctx.textAlign = align;
+      ctx.textBaseline = "alphabetic";
+      ctx.font = `${weight} ${size}px ${appFontStack}`;
+      ctx.fillText(String(value), x, y);
+    };
+    const rule = (y, dashed = false) => {
+      ctx.save();
+      ctx.strokeStyle = colors.rule;
+      ctx.lineWidth = 1;
+      ctx.setLineDash(dashed ? [3, 6] : []);
+      ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(right, y); ctx.stroke();
+      ctx.restore();
+    };
+    // One color block with its label above and HEX below; a timeout gets a dashed empty block.
+    const swatch = (x, label, hex, labelColor) => {
+      const w = 150;
+      text(label, x, 0, 17, 650, labelColor);
+      if (hex) {
+        drawRoundRect(ctx, x, 14, w, 44, 10, hex);
+        ctx.strokeStyle = colors.rule; ctx.lineWidth = 1;
+        strokeRoundRect(ctx, x, 14, w, 44, 10);
+        text(formatHex(hex), x, 84, 18, 600, colors.muted);
+      } else {
+        ctx.save();
+        ctx.strokeStyle = colors.accent; ctx.lineWidth = 2; ctx.setLineDash([6, 6]);
+        strokeRoundRect(ctx, x + 1, 15, w - 2, 42, 10);
+        ctx.restore();
+        text(labels.timeout, x + w / 2, 43, 17, 750, colors.accent, "center");
+      }
+    };
+
+    text("THE IDOLM@STER", left, 96, 18, 750, colors.muted);
+    text(labels.title, left, 146, 40, 800);
+    text(record.date, right, 146, 23, 600, colors.muted, "right");
+    text(labels.summary, left, 192, 22, 550, colors.muted);
+    text(String(misses.length), right, 192, 22, 800, colors.accent, "right");
+    rule(214);
+
+    shown.forEach((item, index) => {
+      const top = listTop + index * rowHeight;
+      const centerY = top + rowHeight / 2;
+      ctx.save();
+      ctx.beginPath(); ctx.arc(left + 40, centerY, 40, 0, Math.PI * 2); ctx.clip();
+      ctx.fillStyle = colors.wash; ctx.fillRect(left, centerY - 40, 80, 80);
+      if (portraits[index]) {
+        const fit = containRect(portraits[index].width, portraits[index].height, left, centerY - 40, 80, 80);
+        ctx.drawImage(portraits[index], fit.x, fit.y, fit.width, fit.height);
+      }
+      ctx.restore();
+      ctx.fillStyle = colors.ink; ctx.textAlign = "left";
+      setFittedCanvasFont(ctx, names[index], 330, 750, 30, 20);
+      ctx.fillText(names[index], left + 104, centerY - 4);
+      text(getSeriesLabel(item.idol.series), left + 104, centerY + 30, 18, 550, colors.muted);
+
+      ctx.save();
+      ctx.translate(0, centerY - 36);
+      swatch(right - 330, labels.picked, item.timedOut ? null : item.selectedHex, colors.muted);
+      swatch(right - 150, labels.answer, item.answerHex, colors.ink);
+      ctx.restore();
+      if (index < shown.length - 1) rule(top + rowHeight, true);
+    });
+
+    if (labels.more) text(labels.more, width / 2, listTop + shown.length * rowHeight + 44, 22, 650, colors.muted, "center");
+    rule(footerTop);
+    text(labels.footer, left, footerTop + 46, 24, 800);
+    drawCanvasRepository(ctx, repositoryLabel, width / 2, footerTop + 92, colors);
+    return canvas;
+  }
+
+  async function createCanvas() {
+    const record = getRecord();
+    const colors = getCanvasColors();
     const labels = {
       title: t("reportTitle"), palette: t("reportPalette"), lineup: t("reportLineup"),
       paletteRange: t("reportRange", record.palette.length, record.total),
@@ -431,26 +569,7 @@ window.IdolmasterResultReport = (() => {
     canvas.height = height;
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
-    ctx.fillStyle = colors.bg;
-    ctx.fillRect(0, 0, width, height);
-    // Rounded paper card with the same spectrum band as the on-screen report.
-    ctx.save();
-    ctx.shadowColor = "rgba(17, 17, 20, 0.14)";
-    ctx.shadowBlur = 36;
-    ctx.shadowOffsetY = 10;
-    drawRoundRect(ctx, 32, 32, width - 64, height - 64, 40, colors.paper);
-    ctx.restore();
-    ctx.save();
-    addRoundRectPath(ctx, 32, 32, width - 64, height - 64, 40);
-    ctx.clip();
-    const band = ctx.createLinearGradient(32, 0, width - 32, 0);
-    spectrumStops.forEach((color, index) => band.addColorStop(index / (spectrumStops.length - 1), color));
-    ctx.fillStyle = band;
-    ctx.fillRect(32, 32, width - 64, 8);
-    ctx.restore();
-    ctx.strokeStyle = colors.rule;
-    ctx.lineWidth = 1;
-    strokeRoundRect(ctx, 32.5, 32.5, width - 65, height - 65, 40);
+    drawPaperCard(ctx, width, height, colors);
 
     function text(value, x, y, size = 24, weight = 500, color = colors.ink, align = "left") {
       ctx.fillStyle = color;
@@ -598,5 +717,5 @@ window.IdolmasterResultReport = (() => {
     ctx.restore();
   }
 
-  return { render, createCanvas };
+  return { render, createCanvas, createWrongNoteCanvas };
 })();
