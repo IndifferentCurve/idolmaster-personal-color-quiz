@@ -4,57 +4,54 @@
 
 # THE IDOLM@STER Image Color Quiz
 
-A fan-made browser quiz: look at an idol's illustration and pick that idol's image color.
-It covers 332 idols from six series and is available in Korean, Japanese and English.
+Look at an idol's illustration and guess their image color.
+There are 332 idols from six series, and you can play in English, Japanese or Korean.
 
-**Play:** [GitHub Pages](https://indifferentcurve.github.io/idolmaster-personal-color-quiz/) · [Render](https://idolmaster-color-quiz.onrender.com/)
+Try it: [GitHub Pages](https://indifferentcurve.github.io/idolmaster-personal-color-quiz/) · [Render](https://idolmaster-color-quiz.onrender.com/)
 
 ![Home screen](docs/screenshots/home.png)
 
-## Features
+## How to play
 
-- **Choose the pool** — every idol, one or more series, or a custom pool picked idol by idol.
-- **Question count** — 10, 20, all, or any number you type.
-- **Four difficulty levels** — how close the wrong choices sit to the answer changes per level (see the table below).
-- **Answer reveal** — once you answer, the true image color lights up behind the illustration, and streaks show as a combo.
-- **Color report** — score, correct count, average answer time, the colors you played and the idol lineup on one card. Save or share it as a PNG.
-- **Missed colors** — compare your pick with the answer for every miss; tap a card for the idol's details.
-- **Color guide** — browse and search the image colors of all 332 idols by series, copy HEX codes and view full illustrations.
-- **Comfort** — light and dark themes, mobile layouts and number-key picks. Tapping a chip in the home screen's color strip opens that idol's details.
+Pick the series you want, choose how many questions and how hard, and hit start.
+If you only want your favorites, the Custom option lets you pick idols one by one.
 
-## Difficulty and scoring
+Each question shows an illustration next to a handful of colors. Pick the one you think is their image color.
+Once you answer, the real color glows up behind the illustration, so even when you miss you can see what it should have been.
 
-| Level | Choices | Time limit | Max score | Wrong choices |
-| --- | ---: | ---: | ---: | --- |
-| Easy | 5 | 30 s | 500 | Colors far around the color wheel |
-| Normal | 6 | 25 s | 1000 | Colors from a similar family + a hair-color trap |
-| Hard | 6 | 20 s | 1500 | Close hue and tone + a hair-color trap |
-| Very Hard | 6 | 15 s | 2000 | Very close colors + other idols' real colors + a hair-color trap |
+## Difficulty
 
-- Each correct answer is worth `max score ÷ question count`, however fast you answer.
-- Running out of time counts as a wrong answer.
-- Wrong choices are kept a minimum CIELAB color distance away from the answer and from each other.
+The harder it gets, the closer the wrong colors are to the right one, and the less time you have.
+From Normal up, one of the wrong colors is close to the idol's hair color, so watch out for that. On Very Hard you'll also see other idols' actual image colors.
 
-## Controls
+| Level | Choices | Time limit | Max score |
+| --- | ---: | ---: | ---: |
+| Easy | 5 | 30 s | 500 |
+| Normal | 6 | 25 s | 1000 |
+| Hard | 6 | 20 s | 1500 |
+| Very Hard | 6 | 15 s | 2000 |
 
-| Key | Action |
-| --- | --- |
-| `1`–`6` | Pick that choice |
-| `Enter` | Next question (the confirm button is focused after you answer) |
-| `Esc` | Close the open window |
+Your score only depends on how many you get right. Answering fast doesn't earn extra, and running out of time counts as a miss.
 
-## Search
+## After the game
 
-The search boxes in custom mode and the color guide match names (Korean, Japanese, English), kana, romaji, units, attributes and HEX codes.
+The results screen sums up your score and every color that came up, and you can save it as an image or share it.
+Anything you missed goes into the missed colors list. Tap a card there to see that idol's illustration and color up close.
 
-| Query | Meaning |
-| --- | --- |
-| `haruka`, `はるか`, `ハルカ` | Different spellings, same idol |
-| `#e22b30` | Find by HEX code |
-| `765 + princess` | Match every term (`+`) |
-| `chihaya or miki` | Match any alternative (`or`) |
+## Color guide
 
-## Series
+This page is for when you just want to look colors up instead of playing.
+It lists the image colors of all 332 idols by series, and tapping a HEX code copies it.
+
+## Handy bits
+
+- Keys 1 to 6 pick a color. After answering, Enter takes you to the next question.
+- Search works with English, Japanese or Korean names and romaji. `haruka` and `はるか` both find Haruka.
+- Use `+` to combine terms (`765 + princess`) or `or` to look for several idols at once (`chihaya or miki`). HEX codes work too.
+- Tap any of the color chips drifting across the home screen to see that idol.
+- There's a light and a dark theme, and it works on phones.
+
+## Who's in it
 
 | Series | Idols |
 | --- | ---: |
@@ -64,57 +61,55 @@ The search boxes in custom mode and the color guide match names (Korean, Japanes
 | Shiny Colors | 28 |
 | Gakuen Idolmaster | 13 |
 | SideM | 49 |
-| **Total** | **332** |
+| Total | 332 |
 
-## Run locally
+## Running it yourself
 
-This is a static site with no build step. Start a static file server in the repository folder:
+It's a static site with no build step, so all you need is a file server in the repo folder:
 
 ```bash
 python -m http.server 8765
 ```
 
-Then open `http://localhost:8765/` in your browser.
+Then open `http://localhost:8765/`.
 
-## Deployment
+It's deployed in two places. GitHub Pages serves the `main` branch as is, and Render reads [`render.yaml`](render.yaml) and uploads only the files the site actually needs.
 
-- **GitHub Pages** — serves the root of the `main` branch as is. Pushing to `main` updates it.
-- **Render** — load the repository's [`render.yaml`](render.yaml) as a Blueprint to deploy it as a Static Site. Only the files the site needs are copied into `dist/`; `reference_assets/` is left out.
-
-## Project structure
+### Folder layout
 
 ```
-index.html            Page markup
-css/style.css         Design tokens, layout, themes
-js/lang.js            Korean, Japanese and English strings
-js/color.js           Color conversion, perceptual distance (CIELAB)
-js/search.js          Name, kana and romaji search
-js/choices.js         Choice colors per difficulty
-js/app.js             Game flow, screens, scoring
-js/guide.js           Color guide, illustration details
-js/result-report.js   Result report, share image
-js/ui.js              Home color strip, number-key picks
-data/series/*.js      Idol data per series
-data/quiz-data.js     Combines the series data
+index.html            The page
+css/style.css         Styles
+js/lang.js            English, Japanese and Korean text
+js/color.js           Color math
+js/search.js          Search
+js/choices.js         Making the color choices
+js/app.js             The game itself
+js/guide.js           Color guide
+js/result-report.js   Results screen and share image
+js/ui.js              Home color chips, number keys
+data/series/*.js      Idol data, one file per series
+data/quiz-data.js     Puts the series data together
 assets/               Illustrations, faces, fonts, icons
-reference_assets/     Source and processing files (not deployed)
-docs/screenshots/     README images
+reference_assets/     Source material (not deployed)
+docs/screenshots/     Images for this README
 ```
 
-Scripts are plain (non-module) scripts loaded in the order listed in `index.html`. Keep that order when adding files.
+The scripts aren't modules. They load in the order they're listed in `index.html`, so keep that order in mind when you add a file.
 
-### Font subsets
+### Fonts
 
-The fonts in `assets/fonts/` are Noto Sans KR and JP subsets that keep only the characters the site uses. Rebuild them after adding new names or strings:
+The fonts are cut-down versions of Noto Sans KR and JP that only keep the characters the site uses.
+If you add a new name or line of text and those characters show up in a different font, rebuild them like this:
 
 ```bash
 pip install fonttools brotli
 python reference_assets/font-subsets/build.py --kr NotoSansKR-VariableFont_wght.ttf --jp NotoSansJP-VariableFont_wght.ttf
 ```
 
-## Sources
+## Credits
 
-| Item | Source |
+| What | Where from |
 | --- | --- |
 | Image color HEX values | [imas-db](https://imas-db.jp/misc/color.html) |
 | 765PRO ALLSTARS and Million Stars images | [MLTD Database](https://imas.gamedbs.jp/mlth/) |
@@ -123,10 +118,10 @@ python reference_assets/font-subsets/build.py --kr NotoSansKR-VariableFont_wght.
 | Gakuen Idolmaster images | [Official site](https://gakuen.idolmaster-official.jp/) |
 | SideM images | [IDOLM@STER Portal](https://idolmaster-official.jp/sidem/) |
 | Cinderella Girls English names | [Cinderella Girls Wiki](https://idolmaster-cinderella-girls.fandom.com/wiki/Characters) |
-| Fonts | [Noto Sans KR](https://fonts.google.com/noto/specimen/Noto+Sans+KR) · [Noto Sans JP](https://fonts.google.com/noto/specimen/Noto+Sans+JP) (SIL OFL 1.1) |
+| Fonts | [Noto Sans KR](https://fonts.google.com/noto/specimen/Noto+Sans+KR), [Noto Sans JP](https://fonts.google.com/noto/specimen/Noto+Sans+JP) (SIL OFL 1.1) |
 
-Per-file sources and processing notes live in the README and manifest files under [`assets`](assets/).
+Where each file came from and how it was edited is written down in the README and manifest files inside [`assets`](assets/).
 
-## Notice
+---
 
 This is an unofficial fan-made quiz. THE IDOLM@STER and its related series belong to their respective rights holders.

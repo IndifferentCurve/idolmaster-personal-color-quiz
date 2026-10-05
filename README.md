@@ -10,8 +10,8 @@
 <h1 align="center">THE IDOLM@STER Image Color Quiz</h1>
 
 <p align="center">
-  See the idol, pick their image color.<br>
-  A fan-made browser quiz with 332 idols from six IDOLM@STER series.
+  Look at the idol, guess their image color.<br>
+  A small fan-made quiz with 332 idols from six IDOLM@STER series.
 </p>
 
 <p align="center">
@@ -29,18 +29,18 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/home.png" alt="Home screen with the drifting color strip, series cards and the session panel" width="880">
+  <img src="docs/screenshots/home.png" alt="Home screen" width="880">
 </p>
 
 <table>
   <tr>
-    <td width="33%"><img src="docs/screenshots/quiz.png" alt="Quiz screen in dark mode"></td>
-    <td width="33%"><img src="docs/screenshots/result.png" alt="Color report after a game"></td>
-    <td width="33%"><img src="docs/screenshots/guide.png" alt="Color guide in Japanese"></td>
+    <td width="33%"><img src="docs/screenshots/quiz.png" alt="A question in dark mode"></td>
+    <td width="33%"><img src="docs/screenshots/result.png" alt="Results after a game"></td>
+    <td width="33%"><img src="docs/screenshots/guide.png" alt="The color guide in Japanese"></td>
   </tr>
   <tr>
-    <td align="center"><sub>Quiz</sub></td>
-    <td align="center"><sub>Color report</sub></td>
+    <td align="center"><sub>Playing</sub></td>
+    <td align="center"><sub>Results</sub></td>
     <td align="center"><sub>Color guide</sub></td>
   </tr>
 </table>
