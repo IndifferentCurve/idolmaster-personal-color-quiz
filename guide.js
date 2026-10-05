@@ -37,6 +37,7 @@ window.IdolmasterColorGuide = (() => {
   let previewTrigger = null;
   let imageRequest = 0;
   let dialogCloseTimer = 0;
+  let inertScreen = null;
 
   ["all", ...seriesOrder].forEach((series) => {
     const button = document.createElement("button");
@@ -128,7 +129,9 @@ window.IdolmasterColorGuide = (() => {
     dialog.hidden = false;
     document.body.classList.add("is-modal-open");
     dialogClose.focus({ preventScroll: true });
-    screen.inert = true;
+    // The dialog also opens from the result screen, so freeze whichever screen is showing.
+    inertScreen = document.querySelector(".screen.is-active");
+    if (inertScreen) inertScreen.inert = true;
     requestAnimationFrame(() => {
       if (request === imageRequest) dialog.classList.add("is-open");
     });
@@ -159,8 +162,12 @@ window.IdolmasterColorGuide = (() => {
     dialogCloseTimer = window.setTimeout(() => {
       dialog.hidden = true;
       dialogImage.removeAttribute("src");
-      document.body.classList.remove("is-modal-open");
-      screen.inert = false;
+      // Keep the page locked when the dialog sat on top of another open dialog.
+      if (!document.querySelector("#wrongNoteModal:not([hidden]), #resultPreview:not([hidden])")) {
+        document.body.classList.remove("is-modal-open");
+      }
+      if (inertScreen) inertScreen.inert = false;
+      inertScreen = null;
       const target = previewTrigger?.isConnected ? previewTrigger : search;
       target.focus({ preventScroll: true });
       previewTrigger = null;
@@ -185,16 +192,18 @@ window.IdolmasterColorGuide = (() => {
     const request = copyRequest;
     const hex = button.dataset.hex;
     const copyStatus = button === dialogCopy ? dialogCopyStatus : status;
+    const isStale = () => request !== copyRequest
+      || (button === dialogCopy ? dialog.hidden : !screen.classList.contains("is-active"));
     try {
       await navigator.clipboard.writeText(hex);
-      if (request !== copyRequest || !screen.classList.contains("is-active")) return;
+      if (isStale()) return;
       copiedButton = button;
       button.classList.add("is-copied");
       button.title = t("guideCopied", hex);
       copyStatus.textContent = t("guideCopied", hex);
       copyTimer = window.setTimeout(resetCopyFeedback, 1800);
     } catch (error) {
-      if (request !== copyRequest || !screen.classList.contains("is-active")) return;
+      if (isStale()) return;
       const range = document.createRange();
       range.selectNodeContents(button.querySelector("code"));
       const selection = window.getSelection();
@@ -314,5 +323,5 @@ window.IdolmasterColorGuide = (() => {
   }
 
   refresh();
-  return { refresh, getOpenDialog: () => dialog.hidden ? null : dialog };
+  return { refresh, openIllustration, getOpenDialog: () => dialog.hidden ? null : dialog };
 })();

@@ -20,10 +20,10 @@ const {
 } = window.IdolmasterQuizData;
 
 const difficultyTiming = Object.freeze({
-  easy: Object.freeze({ limitSeconds: 30, graceSeconds: 11, maxScore: 500 }),
-  normal: Object.freeze({ limitSeconds: 25, graceSeconds: 9, maxScore: 1000 }),
-  hard: Object.freeze({ limitSeconds: 20, graceSeconds: 7, maxScore: 1500 }),
-  "very-hard": Object.freeze({ limitSeconds: 15, graceSeconds: 5, maxScore: 2000 })
+  easy: Object.freeze({ limitSeconds: 30, maxScore: 500 }),
+  normal: Object.freeze({ limitSeconds: 25, maxScore: 1000 }),
+  hard: Object.freeze({ limitSeconds: 20, maxScore: 1500 }),
+  "very-hard": Object.freeze({ limitSeconds: 15, maxScore: 2000 })
 });
 
 const state = {
@@ -348,6 +348,11 @@ themeButtons.forEach((button) => {
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Tab" && trapFocusInOpenModal(event)) {
+    return;
+  }
+
+  // The illustration dialog can sit above the wrong-note dialog; guide.js closes it first.
+  if (event.key === "Escape" && window.IdolmasterColorGuide?.getOpenDialog()) {
     return;
   }
 
@@ -676,10 +681,9 @@ function getTimingRules(difficulty = state.difficulty) {
   return difficultyTiming[difficulty] || difficultyTiming.normal;
 }
 
-function getAnswerCredit(isCorrect, elapsedMs, difficulty = state.difficulty) {
-  if (!isCorrect) return 0;
-  const { limitSeconds, graceSeconds } = getTimingRules(difficulty);
-  return clamp((limitSeconds - elapsedMs / 1000) / (limitSeconds - graceSeconds), 0, 1);
+// Every correct answer is worth the same; the timer only limits, it never discounts.
+function getAnswerCredit(isCorrect) {
+  return isCorrect ? 1 : 0;
 }
 
 function getRunScore(additionalCredit = 0) {
@@ -739,19 +743,14 @@ function tickQuestionTimer() {
 }
 
 function updateQuestionTimerDisplay(elapsedMs, loading = false) {
-  const { limitSeconds, graceSeconds } = getTimingRules();
-  const elapsed = elapsedMs / 1000;
-  const remaining = Math.max(0, limitSeconds - elapsed);
-  const graceRemaining = Math.max(0, graceSeconds - elapsed);
+  const { limitSeconds } = getTimingRules();
+  const remaining = Math.max(0, limitSeconds - elapsedMs / 1000);
   const lastAnswer = state.locked ? state.answerRecords.at(-1) : null;
   const timeText = loading ? "--" : formatResponseTime(Math.ceil(remaining * 10) / 10);
   if (questionTimeLeft.textContent !== timeText) questionTimeLeft.textContent = timeText;
   questionTimer.classList.toggle("is-urgent", remaining <= 5 && !loading && !lastAnswer);
   questionTimer.classList.toggle("is-answered", Boolean(lastAnswer));
   questionTimer.style.setProperty("--time-ratio", String(remaining / limitSeconds));
-  questionTimer.style.setProperty("--grace-ratio", String(graceRemaining / graceSeconds));
-  questionTimer.style.setProperty("--grace-start", `${(limitSeconds - graceSeconds) / limitSeconds * 100}%`);
-  questionTimer.style.setProperty("--grace-width", `${graceSeconds / limitSeconds * 100}%`);
 }
 
 function renderQuestion() {
@@ -773,6 +772,7 @@ function renderQuestion() {
   feedback.className = "feedback";
   state.currentAnswerFeedback = null;
   imageFrame.classList.remove("is-shaking");
+  imageFrame.style.removeProperty("--reveal-color");
   clearCorrectGlow();
   updateComboBadge(false);
   nextButton.hidden = true;
@@ -873,10 +873,12 @@ function judgeAnswer(button, choice, question) {
   const previousScore = getRunScore();
   state.answerRecords.push({
     idolNo: question.no, isCorrect, timedOut, selectedHex, elapsedMs,
-    credit: getAnswerCredit(isCorrect, elapsedMs, state.difficulty)
+    credit: getAnswerCredit(isCorrect)
   });
   state.answerRecords.at(-1).points = getRunScore() - previousScore;
   updateQuestionTimerDisplay(elapsedMs);
+  // Light the illustration's backdrop with the true image color, right or wrong.
+  imageFrame.style.setProperty("--reveal-color", question.hex);
   if (isCorrect) {
     state.correct += 1;
     state.currentCombo += 1;
@@ -1099,8 +1101,13 @@ function renderWrongAnswerList(target, variant = "compact") {
 }
 
 function createWrongAnswerCard(item, variant = "compact") {
-  const card = document.createElement("article");
+  // Each card opens the same illustration dialog the color guide uses.
+  const card = document.createElement("button");
+  card.type = "button";
   card.className = `wrong-note-card ${variant === "modal" ? "is-modal" : ""}`.trim();
+  card.setAttribute("aria-haspopup", "dialog");
+  card.setAttribute("aria-label", t("guideViewIdol", getIdolDisplayName(item.idol)));
+  card.addEventListener("click", () => window.IdolmasterColorGuide?.openIllustration(item.idol, card));
 
   const thumbnail = document.createElement("img");
   thumbnail.className = "wrong-note-thumb";
@@ -1109,14 +1116,14 @@ function createWrongAnswerCard(item, variant = "compact") {
   thumbnail.loading = "lazy";
   thumbnail.decoding = "async";
 
-  const body = document.createElement("div");
+  const body = document.createElement("span");
   body.className = "wrong-note-body";
 
   const name = document.createElement("strong");
   name.className = "wrong-note-name";
   name.textContent = getIdolDisplayName(item.idol);
 
-  const colors = document.createElement("div");
+  const colors = document.createElement("span");
   colors.className = "wrong-note-colors";
   if (item.timedOut) {
     const timeout = document.createElement("span");
@@ -1163,9 +1170,11 @@ function openWrongNoteModal() {
 }
 
 function getOpenModal() {
+  const guideDialog = window.IdolmasterColorGuide?.getOpenDialog();
+  if (guideDialog) return guideDialog;
   if (resultPreview && !resultPreview.hidden) return resultPreview;
   if (wrongNoteModal && !wrongNoteModal.hidden) return wrongNoteModal;
-  return window.IdolmasterColorGuide?.getOpenDialog() || null;
+  return null;
 }
 
 function getFocusableElements(container) {

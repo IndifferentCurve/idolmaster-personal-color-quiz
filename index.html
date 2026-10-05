@@ -3,25 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#f4f3ef" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0b0b0e" media="(prefers-color-scheme: dark)">
   <title></title>
   <link rel="icon" href="favicon.ico" sizes="any">
   <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="style.css?v=2.3">
+  <link rel="stylesheet" href="style.css?v=3.3">
 </head>
 <body>
   <main class="app">
     <section class="screen is-active" id="startScreen">
-      <header class="app-header">
-        <div class="title-block">
-          <h1>
-            <span id="brandTitle"></span>
-            <span id="mainTitle"></span>
-          </h1>
-          <button class="guide-entry" id="guideOpenButton" type="button"></button>
+      <header class="topbar">
+        <div class="brand-lockup" aria-hidden="true">
+          <span class="brand-mark"></span>
+          <span class="brand-text">
+            <span class="brand-text-main">THE IDOLM@STER</span>
+            <span class="brand-text-sub">IMAGE COLOR QUIZ</span>
+          </span>
         </div>
         <div class="header-actions">
+          <button class="guide-entry" id="guideOpenButton" type="button"></button>
           <div class="language-toggle" role="group" aria-label="Language">
             <button class="language-button is-selected" type="button" data-language="ko" aria-pressed="true">
               <span class="language-flag flag-kr" aria-hidden="true"></span>
@@ -39,6 +42,24 @@
           <button class="theme-toggle" id="themeToggle" type="button" aria-label="" aria-pressed="false"></button>
         </div>
       </header>
+
+      <div class="hero">
+        <div class="hero-copy">
+          <h1 class="hero-title">
+            <span class="hero-eyebrow" id="brandTitle"></span>
+            <span class="hero-heading" id="mainTitle"></span>
+          </h1>
+        </div>
+        <dl class="hero-stats" id="heroStats" aria-hidden="true">
+          <div class="hero-stat"><dt>IDOLS</dt><dd data-stat="idols">—</dd></div>
+          <div class="hero-stat"><dt>SERIES</dt><dd data-stat="series">—</dd></div>
+          <div class="hero-stat"><dt>LEVELS</dt><dd data-stat="levels">4</dd></div>
+        </dl>
+      </div>
+
+      <div class="swatch-ribbon" id="swatchRibbon">
+        <div class="swatch-ribbon-track"></div>
+      </div>
 
       <div class="settings-grid">
         <fieldset class="panel series-panel" data-step="01">
@@ -79,7 +100,7 @@
               </span>
               <span></span>
             </label>
-            <label class="choice-label">
+            <label class="choice-label series-card" data-tone="allstars">
               <input type="checkbox" name="series" value="allstars">
               <span class="group-choice-main">
                 <span class="group-icons">
@@ -91,7 +112,7 @@
               </span>
               <span></span>
             </label>
-            <label class="choice-label">
+            <label class="choice-label series-card" data-tone="million">
               <input type="checkbox" name="series" value="million">
               <span class="group-choice-main">
                 <span class="group-icons">
@@ -103,7 +124,7 @@
               </span>
               <span></span>
             </label>
-            <label class="choice-label">
+            <label class="choice-label series-card" data-tone="cinderella">
               <input type="checkbox" name="series" value="cinderella">
               <span class="group-choice-main">
                 <span class="group-icons">
@@ -115,7 +136,7 @@
               </span>
               <span></span>
             </label>
-            <label class="choice-label">
+            <label class="choice-label series-card" data-tone="shiny">
               <input type="checkbox" name="series" value="shiny">
               <span class="group-choice-main">
                 <span class="group-icons">
@@ -127,7 +148,7 @@
               </span>
               <span></span>
             </label>
-            <label class="choice-label">
+            <label class="choice-label series-card" data-tone="gakuen">
               <input type="checkbox" name="series" value="gakuen">
               <span class="group-choice-main">
                 <span class="group-icons">
@@ -139,7 +160,7 @@
               </span>
               <span></span>
             </label>
-            <label class="choice-label">
+            <label class="choice-label series-card" data-tone="sidem">
               <input type="checkbox" name="series" value="sidem">
               <span class="group-choice-main">
                 <span class="group-icons">
@@ -160,11 +181,13 @@
               </div>
               <strong class="custom-selected-count" id="customSelectedCount"></strong>
             </div>
-            <div class="custom-filter-row" id="customSeriesFilters" role="group" aria-label=""></div>
-            <div class="custom-search-row">
-              <span class="custom-search-symbol" aria-hidden="true"></span>
-              <input class="custom-search-input" id="customSearchInput" type="search" autocomplete="off" spellcheck="false">
-              <button class="custom-search-clear" id="customSearchClearButton" type="button" hidden aria-label=""></button>
+            <div class="custom-toolbar">
+              <div class="custom-filter-row" id="customSeriesFilters" role="group" aria-label=""></div>
+              <div class="custom-search-row">
+                <span class="custom-search-symbol" aria-hidden="true"></span>
+                <input class="custom-search-input" id="customSearchInput" type="search" autocomplete="off" spellcheck="false">
+                <button class="custom-search-clear" id="customSearchClearButton" type="button" hidden aria-label=""></button>
+              </div>
             </div>
             <div class="custom-action-row">
               <button class="ghost-button custom-action-button" id="customSelectVisibleButton" type="button"></button>
@@ -175,61 +198,80 @@
           </div>
         </fieldset>
 
-        <section class="panel count-panel" aria-labelledby="countTitle" data-step="02">
-          <h2 class="panel-title" id="countTitle"></h2>
-          <div class="count-controls">
-            <div class="count-row">
-              <button class="count-preset" type="button" data-count="10"></button>
-              <button class="count-preset" type="button" data-count="20"></button>
-              <button class="count-preset is-selected" type="button" data-count="all"></button>
+        <aside class="session-panel">
+          <section class="panel count-panel" aria-labelledby="countTitle" data-step="02">
+            <h2 class="panel-title" id="countTitle"></h2>
+            <div class="count-controls">
+              <div class="count-row">
+                <button class="count-preset" type="button" data-count="10"></button>
+                <button class="count-preset" type="button" data-count="20"></button>
+                <button class="count-preset is-selected" type="button" data-count="all"></button>
+              </div>
+              <div class="number-field">
+                <label for="questionCount"></label>
+                <input id="questionCount" type="text" inputmode="numeric" pattern="[0-9]*" max="332" value="332">
+              </div>
             </div>
-            <div class="number-field">
-              <label for="questionCount"></label>
-              <input id="questionCount" type="text" inputmode="numeric" pattern="[0-9]*" max="332" value="332">
-            </div>
-          </div>
-        </section>
+          </section>
 
-        <fieldset class="panel difficulty-panel" data-step="03">
-          <legend></legend>
-          <div class="difficulty-grid">
-            <label class="choice-label">
-              <input type="radio" name="difficulty" value="easy">
-              <strong></strong>
-              <span class="difficulty-description"></span>
-            </label>
-            <label class="choice-label">
-              <input type="radio" name="difficulty" value="normal" checked>
-              <strong></strong>
-              <span class="difficulty-description"></span>
-            </label>
-            <label class="choice-label">
-              <input type="radio" name="difficulty" value="hard">
-              <strong></strong>
-              <span class="difficulty-description"></span>
-            </label>
-            <label class="choice-label">
-              <input type="radio" name="difficulty" value="very-hard">
-              <strong></strong>
-              <span class="difficulty-description"></span>
-            </label>
+          <fieldset class="panel difficulty-panel" data-step="03">
+            <legend></legend>
+            <div class="difficulty-grid">
+              <label class="choice-label" data-level="1">
+                <input type="radio" name="difficulty" value="easy">
+                <span class="difficulty-meter" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                <span class="difficulty-copy">
+                  <strong></strong>
+                  <span class="difficulty-description"></span>
+                </span>
+                <span class="difficulty-spec" aria-hidden="true"><b>30s</b><small>MAX 500</small></span>
+              </label>
+              <label class="choice-label" data-level="2">
+                <input type="radio" name="difficulty" value="normal" checked>
+                <span class="difficulty-meter" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                <span class="difficulty-copy">
+                  <strong></strong>
+                  <span class="difficulty-description"></span>
+                </span>
+                <span class="difficulty-spec" aria-hidden="true"><b>25s</b><small>MAX 1000</small></span>
+              </label>
+              <label class="choice-label" data-level="3">
+                <input type="radio" name="difficulty" value="hard">
+                <span class="difficulty-meter" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                <span class="difficulty-copy">
+                  <strong></strong>
+                  <span class="difficulty-description"></span>
+                </span>
+                <span class="difficulty-spec" aria-hidden="true"><b>20s</b><small>MAX 1500</small></span>
+              </label>
+              <label class="choice-label" data-level="4">
+                <input type="radio" name="difficulty" value="very-hard">
+                <span class="difficulty-meter" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                <span class="difficulty-copy">
+                  <strong></strong>
+                  <span class="difficulty-description"></span>
+                </span>
+                <span class="difficulty-spec" aria-hidden="true"><b>15s</b><small>MAX 2000</small></span>
+              </label>
+            </div>
+          </fieldset>
+
+          <div class="start-actions">
+            <div class="pool-summary">
+              <div class="pool-summary-head">
+                <span class="pool-kicker"></span>
+              </div>
+              <div class="pool-series-list" id="poolSeriesList" aria-label=""></div>
+              <div class="pool-meta-row">
+                <strong id="poolTitle"></strong>
+                <span id="poolMeta"></span>
+              </div>
+            </div>
+            <button class="primary-button" id="startButton" type="button"></button>
           </div>
-        </fieldset>
+        </aside>
       </div>
 
-      <div class="start-actions">
-        <div class="pool-summary">
-          <div class="pool-summary-head">
-            <span class="pool-kicker"></span>
-          </div>
-          <div class="pool-series-list" id="poolSeriesList" aria-label=""></div>
-          <div class="pool-meta-row">
-            <strong id="poolTitle"></strong>
-            <span id="poolMeta"></span>
-          </div>
-        </div>
-        <button class="primary-button" id="startButton" type="button"></button>
-      </div>
       <footer class="source-note" aria-label="">
         <span class="source-title" id="sourceNoteTitle"></span>
         <span class="source-group">
@@ -261,7 +303,7 @@
     </section>
 
     <section class="screen" id="guideScreen" aria-labelledby="guideTitle">
-      <div class="guide-topbar">
+      <div class="topbar guide-topbar">
         <button class="back-button" id="guideBackButton" type="button"></button>
         <div class="header-actions">
           <div class="language-toggle" role="group" aria-label="Language">
@@ -279,7 +321,7 @@
         </div>
       </div>
       <header class="guide-heading">
-        <span class="guide-brand">THE IDOLM@STER</span>
+        <span class="guide-brand">THE IDOLM@STER · COLOR INDEX</span>
         <h1 id="guideTitle" tabindex="-1"></h1>
         <p class="guide-source"><span id="guideHexSourceLabel"></span><a href="https://imas-db.jp/misc/color.html" target="_blank" rel="noopener noreferrer">imas-db</a></p>
       </header>
@@ -304,40 +346,26 @@
       <div class="quiz-shell">
         <div class="quiz-nav">
           <button class="back-button" id="homeButton" type="button" aria-label=""></button>
-          <div class="combo-badge" id="comboBadge" aria-live="polite" hidden></div>
-        </div>
-        <div class="quiz-progress">
-          <div class="quiz-top">
-            <div class="stat">
-              <span></span>
-              <strong id="progressText">1 / 5</strong>
-            </div>
-            <div class="stat">
-              <span></span>
-              <strong id="scoreText">0</strong>
-            </div>
-            <div class="stat">
-              <span></span>
-              <strong id="pointsText">0</strong>
-            </div>
-          </div>
-          <div class="progress-track" aria-hidden="true">
-            <div class="progress-bar" id="progressBar"></div>
-          </div>
-          <div class="quiz-timer" id="questionTimer" role="timer" aria-live="off">
-            <div class="question-timer-head">
-              <div class="quiz-difficulty-chip" id="quizDifficultyChip">
-                <span class="quiz-difficulty-label" id="quizDifficultyLabel"></span>
-                <strong class="quiz-difficulty-name" id="quizDifficultyName"></strong>
+          <div class="quiz-progress">
+            <div class="quiz-top">
+              <div class="stat stat-progress">
+                <span></span>
+                <strong id="progressText">1 / 5</strong>
               </div>
-              <div class="question-time-left"><span id="questionTimerLabel"></span><strong id="questionTimeLeft">--</strong></div>
+              <div class="stat">
+                <span></span>
+                <strong id="scoreText">0</strong>
+              </div>
+              <div class="stat">
+                <span></span>
+                <strong id="pointsText">0</strong>
+              </div>
             </div>
-            <div class="question-time-track" aria-hidden="true">
-              <span class="question-time-remaining"></span>
-              <span class="question-time-grace"></span>
-              <span class="question-time-boundary"></span>
+            <div class="progress-track" aria-hidden="true">
+              <div class="progress-bar" id="progressBar"></div>
             </div>
           </div>
+          <div class="combo-badge" id="comboBadge" aria-live="polite" hidden></div>
         </div>
 
         <div class="stage">
@@ -347,13 +375,27 @@
               <div class="fallback-name" id="fallbackName"></div>
             </div>
           </div>
-          <div class="caption">
-            <strong id="characterName"></strong>
-            <span id="characterMeta"></span>
+          <div class="stage-panel">
+            <div class="caption">
+              <span id="characterMeta"></span>
+              <strong id="characterName"></strong>
+            </div>
+            <div class="quiz-timer" id="questionTimer" role="timer" aria-live="off">
+              <div class="question-timer-head">
+                <div class="quiz-difficulty-chip" id="quizDifficultyChip">
+                  <span class="quiz-difficulty-label" id="quizDifficultyLabel"></span>
+                  <strong class="quiz-difficulty-name" id="quizDifficultyName"></strong>
+                </div>
+                <div class="question-time-left"><span id="questionTimerLabel"></span><strong id="questionTimeLeft">--</strong></div>
+              </div>
+              <div class="question-time-track" aria-hidden="true">
+                <span class="question-time-remaining"></span>
+              </div>
+            </div>
+            <div class="swatches" id="swatches"></div>
+            <div class="answer-note" id="answerNote"></div>
+            <button class="next-button" id="nextButton" type="button" hidden></button>
           </div>
-          <div class="swatches" id="swatches"></div>
-          <div class="answer-note" id="answerNote"></div>
-          <button class="next-button" id="nextButton" type="button" hidden></button>
           <div class="feedback" id="feedback">
             <div class="feedback-mark" id="feedbackMark">O</div>
           </div>
@@ -481,8 +523,10 @@
   <script src="data.js?v=1.1"></script>
   <script src="lang.js?v=1.8"></script>
   <!-- script.js wires the UI events and game flow after the data is ready. -->
-  <script src="script.js?v=2.4"></script>
-  <script src="guide.js?v=1.2"></script>
-  <script src="result-report.js?v=1.0"></script>
+  <script src="script.js?v=3.2"></script>
+  <script src="guide.js?v=3.2"></script>
+  <script src="result-report.js?v=3.0"></script>
+  <!-- ui.js adds presentation-only flourishes on top of the game flow. -->
+  <script src="ui.js?v=3.2"></script>
 </body>
 </html>

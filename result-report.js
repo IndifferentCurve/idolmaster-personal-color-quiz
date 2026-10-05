@@ -2,6 +2,8 @@
 
 // Screen and export share the same completed-game record, never a new sample.
 window.IdolmasterResultReport = (() => {
+  const spectrumStops = ["#f34f6d", "#f39800", "#ffc30b", "#0fbe94", "#2681c8", "#7ac7ff", "#ff7db7", "#f34f6d"];
+
   function getRecord() {
     const answers = state.questions.map((idol, index) => {
       const answer = state.answerRecords[index];
@@ -110,7 +112,9 @@ window.IdolmasterResultReport = (() => {
     const tokens = getComputedStyle(document.querySelector(".result-report"));
     const colors = Object.fromEntries(["paper", "ink", "muted", "rule", "accent", "wash"].map(key => [key, tokens.getPropertyValue(`--report-${key}`).trim()]));
     colors.text = colors.ink;
-    colors.bg = getComputedStyle(document.documentElement).getPropertyValue("--page-bg").trim();
+    const rootTokens = getComputedStyle(document.documentElement);
+    colors.bg = rootTokens.getPropertyValue("--page-bg").trim();
+    colors.positive = rootTokens.getPropertyValue("--positive").trim() || colors.ink;
     const labels = {
       title: t("reportTitle"), palette: t("reportPalette"), lineup: t("reportLineup"),
       paletteRange: t("reportRange", record.palette.length, record.total),
@@ -142,14 +146,24 @@ window.IdolmasterResultReport = (() => {
     ctx.imageSmoothingQuality = "high";
     ctx.fillStyle = colors.bg;
     ctx.fillRect(0, 0, width, height);
-    ctx.fillStyle = colors.paper;
-    ctx.fillRect(32, 32, width - 64, height - 64);
-    ctx.strokeStyle = colors.ink;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(32, 32, width - 64, height - 64);
+    // Rounded paper card with the same spectrum band as the on-screen report.
+    ctx.save();
+    ctx.shadowColor = "rgba(17, 17, 20, 0.14)";
+    ctx.shadowBlur = 36;
+    ctx.shadowOffsetY = 10;
+    drawRoundRect(ctx, 32, 32, width - 64, height - 64, 40, colors.paper);
+    ctx.restore();
+    ctx.save();
+    addRoundRectPath(ctx, 32, 32, width - 64, height - 64, 40);
+    ctx.clip();
+    const band = ctx.createLinearGradient(32, 0, width - 32, 0);
+    spectrumStops.forEach((color, index) => band.addColorStop(index / (spectrumStops.length - 1), color));
+    ctx.fillStyle = band;
+    ctx.fillRect(32, 32, width - 64, 8);
+    ctx.restore();
     ctx.strokeStyle = colors.rule;
     ctx.lineWidth = 1;
-    ctx.strokeRect(40, 40, width - 80, height - 80);
+    strokeRoundRect(ctx, 32.5, 32.5, width - 65, height - 65, 40);
 
     function text(value, x, y, size = 24, weight = 500, color = colors.ink, align = "left") {
       ctx.fillStyle = color;
@@ -168,7 +182,7 @@ window.IdolmasterResultReport = (() => {
     }
     function mark(x, y, correct) {
       ctx.save();
-      ctx.strokeStyle = correct ? colors.ink : colors.accent;
+      ctx.strokeStyle = correct ? colors.positive : colors.accent;
       ctx.lineWidth = 2.5;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
@@ -178,20 +192,20 @@ window.IdolmasterResultReport = (() => {
       ctx.stroke(); ctx.restore();
     }
 
-    text("THE IDOLM@STER", left, 92, 18, 650, colors.muted);
-    text(labels.title, left, 138, 34, 650);
-    text(record.date, right, 138, 23, 600, colors.ink, "right");
+    text("THE IDOLM@STER", left, 92, 18, 750, colors.muted);
+    text(labels.title, left, 138, 36, 800);
+    text(record.date, right, 138, 23, 600, colors.muted, "right");
     line(164);
-    text("RESULT", left, 211, 18, 650, colors.accent);
+    text("RESULT", left, 211, 18, 800, colors.accent);
     if (record.message) {
-      setFittedCanvasFont(ctx, record.message, mainWidth, 650, 46, 28);
+      setFittedCanvasFont(ctx, record.message, mainWidth, 800, 46, 28);
       ctx.fillStyle = colors.accent; ctx.textAlign = "left";
       ctx.fillText(record.message, left, 272);
     }
     // Collapse the comment row without changing spacing within the report below it.
     ctx.save();
     ctx.translate(0, -removedMessageSpace);
-    text(record.score, left - 7, 450, 184, 650);
+    text(record.score, left - 7, 450, 184, 800);
     const scoreWidth = ctx.measureText(record.score).width;
     text(labels.unit, left + scoreWidth + 6, 450, 34, 550, colors.muted);
     text(labels.summary, left, 494, 24, 500, colors.muted);
@@ -200,27 +214,27 @@ window.IdolmasterResultReport = (() => {
     labels.stats.forEach(([label, value], index) => {
       const x = left + index * mainWidth / labels.stats.length;
       text(label, x, 565, 20, 500, colors.muted);
-      text(value, x, 606, 29, 600);
+      text(value, x, 606, 29, 800);
     });
     line(632);
-    text(labels.palette, left, 679, 23, 600);
+    text(labels.palette, left, 679, 23, 800);
     text(labels.paletteRange, right, 679, 19, 500, colors.muted, "right");
     const tileGap = 10;
     const tileWidth = (mainWidth - Math.max(0, record.palette.length - 1) * tileGap) / Math.max(1, record.palette.length);
     record.palette.forEach((answer, index) => {
       const x = left + index * (tileWidth + tileGap);
-      drawRoundRect(ctx, x, 701, tileWidth, 46, 3, answer.hex);
+      drawRoundRect(ctx, x, 701, tileWidth, 46, 10, answer.hex);
       ctx.strokeStyle = colors.rule;
-      strokeRoundRect(ctx, x, 701, tileWidth, 46, 3);
+      strokeRoundRect(ctx, x, 701, tileWidth, 46, 10);
       text(String(answer.index).padStart(2, "0"), x + tileWidth / 2 - 7, 778, 17, 550, answer.correct ? colors.muted : colors.accent, "center");
       mark(x + tileWidth / 2 + 15, 772, answer.correct);
     });
-    text(labels.lineup, left, 824, 23, 600);
+    text(labels.lineup, left, 824, 23, 800);
     if (labels.lineupRemainder) text(labels.lineupRemainder, right, 824, 19, 500, colors.muted, "right");
     record.picks.forEach((answer, index) => {
       const y = listTop + index * rowHeight;
       const centerY = y + 48;
-      text(String(answer.index).padStart(2, "0"), left, centerY + 8, 24, 650, colors.accent);
+      text(String(answer.index).padStart(2, "0"), left, centerY + 8, 22, 600, colors.muted);
       ctx.save();
       ctx.beginPath(); ctx.arc(left + 77, centerY, 29, 0, Math.PI * 2); ctx.clip();
       ctx.fillStyle = colors.wash; ctx.fillRect(left + 48, centerY - 29, 58, 58);
@@ -230,24 +244,28 @@ window.IdolmasterResultReport = (() => {
       }
       ctx.restore();
       ctx.textAlign = "left"; ctx.fillStyle = colors.ink;
-      setFittedCanvasFont(ctx, answer.name, mainWidth - 242, 600, 26, 18);
+      setFittedCanvasFont(ctx, answer.name, mainWidth - 242, 750, 26, 18);
       ctx.fillText(answer.name, left + 130, centerY - 5);
       text(answer.hex, left + 130, centerY + 26, 20, 500, colors.muted);
       text(answer.responseTime, left + 270, centerY + 26, 20, 500, colors.muted);
       text(answer.outcome, right - 28, centerY + 26, 20, 550, answer.correct ? colors.muted : colors.accent, "right");
       mark(right - 7, centerY + 18, answer.correct);
-      drawRoundRect(ctx, right - 76, centerY - 26, 76, 29, 3, answer.hex);
-      ctx.strokeStyle = colors.rule; strokeRoundRect(ctx, right - 76, centerY - 26, 76, 29, 3);
+      drawRoundRect(ctx, right - 76, centerY - 26, 76, 29, 8, answer.hex);
+      ctx.strokeStyle = colors.rule; strokeRoundRect(ctx, right - 76, centerY - 26, 76, 29, 8);
       line(y + rowHeight, true);
     });
     drawResultSeriesCanvas(ctx, { x: left, y: seriesTop, width: mainWidth, height: seriesHeight, activeSeries: record.series, seriesIconImages: seriesImages, colors, metrics: seriesMetrics });
     line(footerTop);
-    text(labels.footer, left, footerTop + 44, 24, 600);
+    text(labels.footer, left, footerTop + 44, 24, 800);
     const stripeX = right - 184;
+    ctx.save();
+    addRoundRectPath(ctx, stripeX, footerTop + 23, 184, 24, 12);
+    ctx.clip();
     record.palette.forEach((answer, index) => {
       ctx.fillStyle = answer.hex;
-      ctx.fillRect(stripeX + index * 184 / Math.max(1, record.palette.length), footerTop + 23, 184 / Math.max(1, record.palette.length), 24);
+      ctx.fillRect(stripeX + index * 184 / Math.max(1, record.palette.length), footerTop + 23, 184 / Math.max(1, record.palette.length) + 1, 24);
     });
+    ctx.restore();
     drawCanvasRepository(ctx, repositoryLabel, left + mainWidth / 2, footerTop + 88, colors);
     ctx.restore();
 
@@ -260,9 +278,9 @@ window.IdolmasterResultReport = (() => {
       ctx.beginPath(); ctx.arc(tearX, y, 4.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     }
     const stubX = (tearX + width - 32) / 2;
-    text("PLAY RECORD", stubX, 106, 15, 650, colors.accent, "center");
+    text("PLAY RECORD", stubX, 106, 15, 800, colors.accent, "center");
     ctx.save(); ctx.translate(stubX + 10, 350); ctx.rotate(Math.PI / 2);
-    text("IMAGE COLOR QUIZ", 0, 0, 32, 600); ctx.restore();
+    text("IMAGE COLOR QUIZ", 0, 0, 29, 800); ctx.restore();
     record.series.forEach((series, index) => {
       drawSeriesCanvasBadge(ctx, stubX - 24, 726 - removedMessageSpace + index * 58, 48, 38, series, seriesImages[series]);
     });
@@ -273,13 +291,23 @@ window.IdolmasterResultReport = (() => {
     return canvas;
   }
 
+  // A spectrum-ringed seal; older canvases without conic gradients fall back to the accent.
   function drawSeal(ctx, x, y, radius, colors) {
-    ctx.save(); ctx.translate(x, y); ctx.rotate(-Math.PI / 24);
-    ctx.strokeStyle = colors.accent; ctx.fillStyle = colors.accent; ctx.lineWidth = 2;
-    [radius, radius - 6].forEach(r => { ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke(); });
+    ctx.save(); ctx.translate(x, y); ctx.rotate(-Math.PI / 22);
+    let ring = colors.accent;
+    if (typeof ctx.createConicGradient === "function") {
+      ring = ctx.createConicGradient(Math.PI * 1.1, 0, 0);
+      spectrumStops.forEach((color, index) => ring.addColorStop(index / (spectrumStops.length - 1), color));
+    }
+    ctx.strokeStyle = ring; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = colors.rule; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(0, 0, radius - 9, 0, Math.PI * 2); ctx.stroke();
     ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
-    ctx.font = `650 ${Math.round(radius * .94)}px ${appFontStack}`; ctx.fillText("P", 0, 13);
-    ctx.font = `650 ${Math.round(radius * .18)}px ${appFontStack}`; ctx.fillText("COLOR MATCH", 0, radius * .56);
+    ctx.fillStyle = colors.ink;
+    ctx.font = `800 ${Math.round(radius * .94)}px ${appFontStack}`; ctx.fillText("P", 0, 13);
+    ctx.fillStyle = colors.muted;
+    ctx.font = `800 ${Math.round(radius * .17)}px ${appFontStack}`; ctx.fillText("COLOR MATCH", 0, radius * .56);
     ctx.restore();
   }
 
