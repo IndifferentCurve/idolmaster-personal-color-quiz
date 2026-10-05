@@ -365,6 +365,7 @@ window.IdolmasterResultReport = (() => {
       number.textContent = String(answer.index).padStart(2, "0");
       const avatar = document.createElement("span");
       avatar.className = "report-pick-avatar";
+      avatar.style.setProperty("--pick-color", answer.hex);
       const image = document.createElement("img");
       image.src = answer.idol.faceImage;
       image.alt = "";
@@ -586,6 +587,7 @@ window.IdolmasterResultReport = (() => {
     return canvas;
   }
 
+  // The shareable result card, laid out top to bottom with a running y cursor.
   async function createCanvas() {
     const record = getRecord();
     const colors = getCanvasColors();
@@ -594,155 +596,174 @@ window.IdolmasterResultReport = (() => {
       paletteRange: t("reportRange", record.palette.length, record.total),
       lineupRemainder: record.lineupRemainder,
       summary: t("correctSummary", record.correct, record.total), unit: `/ ${record.maxScore}`,
-      recorded: t("reportRecorded"), footer: t("canvasFooter"),
+      meta: `${record.difficulty} · ${record.date} ${record.time}`, footer: t("canvasFooter"),
       stats: [[t("correctCount"), t("countWithUnit", record.correct)], [t("totalQuestions"), t("countWithUnit", record.total)], [t("resultDifficulty"), record.difficulty], [t("averageTime"), record.averageTime]]
     };
     if (document.fonts?.ready) await document.fonts.ready;
     if (document.fonts?.load) {
-      await document.fonts.load(`600 28px ${appFontStack}`, [record.message, ...Object.values(labels).flat(2), ...record.picks.map(item => item.name)].join(" "));
+      await document.fonts.load(`700 28px ${appFontStack}`, [record.message, ...Object.values(labels).flat(2), ...record.picks.map(item => item.name)].join(" "));
     }
     const portraits = await Promise.all(record.picks.map(item => loadImage(item.idol.faceImage)));
     const seriesImages = await loadSeriesIconImages(record.series);
+
+    const width = 1080, left = 80, right = width - 80, inner = right - left;
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
-    const width = 1080, left = 80, right = 816, mainWidth = right - left, tearX = 868;
     const seriesMetrics = { fontSize: 24, titleFontSize: 24, titleBaseline: 30, pillHeight: 44, rowGap: 12, gap: 14, padX: 10, badgeWidth: 36, badgeHeight: 28, badgeGap: 10, listTop: 54, bottomPadding: 18 };
-    seriesMetrics.rows = makeSeriesPillRows(ctx, record.series, mainWidth - 48, seriesMetrics);
+    seriesMetrics.rows = makeSeriesPillRows(ctx, record.series, inner - 48, seriesMetrics);
     const seriesHeight = 54 + seriesMetrics.rows.length * 44 + Math.max(0, seriesMetrics.rows.length - 1) * 12 + 18;
-    const listTop = 828, rowHeight = 90;
-    const seriesTop = listTop + record.picks.length * rowHeight + 38;
-    const footerTop = seriesTop + seriesHeight + 32;
-    const removedMessageSpace = record.message ? 0 : 64;
-    const height = footerTop + 144 - removedMessageSpace;
+
+    // Vertical plan, so the canvas height is known before drawing.
+    const cardHeight = 112, cardGap = 12;
+    const layout = {};
+    let y = 236;
+    layout.message = record.message ? (y += 72) : 0;
+    layout.score = (y += 196);
+    layout.summary = (y += 48);
+    layout.bar = (y += 28);
+    layout.stats = (y += 54);
+    layout.paletteTitle = (y += 110 + 66);
+    layout.tiles = (y += 22);
+    layout.lineupTitle = (y += 84 + 36 + 62);
+    layout.cards = (y += 22);
+    y += record.picks.length * cardHeight + Math.max(0, record.picks.length - 1) * cardGap;
+    layout.series = (y += 30);
+    layout.footer = (y += seriesHeight + 24);
+    const height = y + 140;
+
     canvas.width = width;
     canvas.height = height;
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
     drawPaperCard(ctx, width, height, colors);
 
-    function text(value, x, y, size = 24, weight = 500, color = colors.ink, align = "left") {
+    const text = (value, x, ty, size = 24, weight = 500, color = colors.ink, align = "left") => {
       ctx.fillStyle = color;
       ctx.textAlign = align;
       ctx.textBaseline = "alphabetic";
       ctx.font = `${weight} ${size}px ${appFontStack}`;
-      ctx.fillText(String(value), x, y);
-    }
-    function line(y, dashed = false) {
+      ctx.fillText(String(value), x, ty);
+    };
+    const rule = (ry) => {
       ctx.save();
-      ctx.strokeStyle = colors.rule;
-      ctx.lineWidth = 1;
-      ctx.setLineDash(dashed ? [3, 6] : []);
-      ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(right, y); ctx.stroke();
+      ctx.strokeStyle = colors.rule; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(left, ry); ctx.lineTo(right, ry); ctx.stroke();
       ctx.restore();
-    }
-    function mark(x, y, correct) {
+    };
+    const mark = (x, my, correct) => {
       ctx.save();
       ctx.strokeStyle = correct ? colors.positive : colors.accent;
-      ctx.lineWidth = 2.5;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
+      ctx.lineWidth = 2.5; ctx.lineCap = "round"; ctx.lineJoin = "round";
       ctx.beginPath();
-      if (correct) { ctx.moveTo(x - 6, y); ctx.lineTo(x - 1, y + 5); ctx.lineTo(x + 7, y - 5); }
-      else { ctx.moveTo(x - 5, y - 5); ctx.lineTo(x + 5, y + 5); ctx.moveTo(x + 5, y - 5); ctx.lineTo(x - 5, y + 5); }
+      if (correct) { ctx.moveTo(x - 6, my); ctx.lineTo(x - 1, my + 5); ctx.lineTo(x + 7, my - 5); }
+      else { ctx.moveTo(x - 5, my - 5); ctx.lineTo(x + 5, my + 5); ctx.moveTo(x + 5, my - 5); ctx.lineTo(x - 5, my + 5); }
       ctx.stroke(); ctx.restore();
+    };
+    const spectrum = (x0, x1) => {
+      const gradient = ctx.createLinearGradient(x0, 0, x1, 0);
+      spectrumStops.forEach((color, index) => gradient.addColorStop(index / (spectrumStops.length - 1), color));
+      return gradient;
+    };
+
+    // Header, matching the missed-colors card.
+    text("THE IDOLM@STER", left, 100, 18, 750, colors.muted);
+    text(labels.title, left, 160, 46, 800);
+    text(labels.meta, left, 206, 21, 550, colors.muted);
+    drawSeal(ctx, right - 60, 150, 58, colors);
+    rule(236);
+
+    if (record.message) {
+      ctx.fillStyle = spectrum(left, left + 520);
+      ctx.textAlign = "left";
+      setFittedCanvasFont(ctx, record.message, inner, 800, 46, 28);
+      ctx.fillText(record.message, left, layout.message);
     }
 
-    text("THE IDOLM@STER", left, 92, 18, 750, colors.muted);
-    text(labels.title, left, 138, 36, 800);
-    text(record.date, right, 138, 23, 600, colors.muted, "right");
-    line(164);
-    text("RESULT", left, 211, 18, 800, colors.accent);
-    if (record.message) {
-      setFittedCanvasFont(ctx, record.message, mainWidth, 800, 46, 28);
-      ctx.fillStyle = colors.accent; ctx.textAlign = "left";
-      ctx.fillText(record.message, left, 272);
-    }
-    // Collapse the comment row without changing spacing within the report below it.
-    ctx.save();
-    ctx.translate(0, -removedMessageSpace);
-    text(record.score, left - 7, 450, 184, 800);
+    // Score, then how far along the maximum it got.
+    text(record.score, left - 8, layout.score, 196, 800);
+    ctx.font = `800 196px ${appFontStack}`;
     const scoreWidth = ctx.measureText(record.score).width;
-    text(labels.unit, left + scoreWidth + 6, 450, 34, 550, colors.muted);
-    text(labels.summary, left, 494, 24, 500, colors.muted);
-    drawSeal(ctx, right - 65, 401, 58, colors);
-    line(528);
+    text(labels.unit, left + scoreWidth + 8, layout.score, 34, 600, colors.muted);
+    text(labels.summary, left, layout.summary, 24, 600, colors.muted);
+    drawRoundRect(ctx, left, layout.bar, inner, 14, 7, colors.wash);
+    const ratio = clamp(Number(record.score) / record.maxScore, 0, 1);
+    if (ratio > 0) drawRoundRect(ctx, left, layout.bar, Math.max(14, inner * ratio), 14, 7, spectrum(left, right));
+
+    // Four stat tiles.
+    const tileGap = 12, statWidth = (inner - tileGap * 3) / 4;
     labels.stats.forEach(([label, value], index) => {
-      const x = left + index * mainWidth / labels.stats.length;
-      text(label, x, 565, 20, 500, colors.muted);
-      text(value, x, 606, 29, 800);
+      const x = left + index * (statWidth + tileGap);
+      drawRoundRect(ctx, x, layout.stats, statWidth, 110, 22, colors.wash);
+      text(label, x + 22, layout.stats + 40, 18, 550, colors.muted);
+      ctx.fillStyle = colors.ink; ctx.textAlign = "left";
+      setFittedCanvasFont(ctx, value, statWidth - 44, 800, 32, 20);
+      ctx.fillText(value, x + 22, layout.stats + 86);
     });
-    line(632);
-    text(labels.palette, left, 679, 23, 800);
-    text(labels.paletteRange, right, 679, 19, 500, colors.muted, "right");
-    const tileGap = 10;
-    const tileWidth = (mainWidth - Math.max(0, record.palette.length - 1) * tileGap) / Math.max(1, record.palette.length);
+
+    // The colors of this game, as tall tiles with a pass/miss mark.
+    text(labels.palette, left, layout.paletteTitle, 24, 800);
+    text(labels.paletteRange, right, layout.paletteTitle, 19, 550, colors.muted, "right");
+    const swatchGap = 10;
+    const swatchWidth = (inner - Math.max(0, record.palette.length - 1) * swatchGap) / Math.max(1, record.palette.length);
     record.palette.forEach((answer, index) => {
-      const x = left + index * (tileWidth + tileGap);
-      drawRoundRect(ctx, x, 701, tileWidth, 46, 10, answer.hex);
-      ctx.strokeStyle = colors.rule;
-      strokeRoundRect(ctx, x, 701, tileWidth, 46, 10);
-      text(String(answer.index).padStart(2, "0"), x + tileWidth / 2 - 7, 778, 17, 550, answer.correct ? colors.muted : colors.accent, "center");
-      mark(x + tileWidth / 2 + 15, 772, answer.correct);
+      const x = left + index * (swatchWidth + swatchGap);
+      drawRoundRect(ctx, x, layout.tiles, swatchWidth, 84, 16, answer.hex);
+      ctx.strokeStyle = colors.rule; ctx.lineWidth = 1;
+      strokeRoundRect(ctx, x + 0.5, layout.tiles + 0.5, swatchWidth - 1, 83, 16);
+      text(String(answer.index).padStart(2, "0"), x + swatchWidth / 2 - 8, layout.tiles + 118, 17, 650, answer.correct ? colors.muted : colors.accent, "center");
+      mark(x + swatchWidth / 2 + 16, layout.tiles + 112, answer.correct);
     });
-    text(labels.lineup, left, 824, 23, 800);
-    if (labels.lineupRemainder) text(labels.lineupRemainder, right, 824, 19, 500, colors.muted, "right");
+
+    // Idol lineup: cards with the avatar ringed in that idol's image color.
+    text(labels.lineup, left, layout.lineupTitle, 24, 800);
+    if (labels.lineupRemainder) text(labels.lineupRemainder, right, layout.lineupTitle, 19, 550, colors.muted, "right");
     record.picks.forEach((answer, index) => {
-      const y = listTop + index * rowHeight;
-      const centerY = y + 48;
-      text(String(answer.index).padStart(2, "0"), left, centerY + 8, 22, 600, colors.muted);
+      const top = layout.cards + index * (cardHeight + cardGap);
+      const cy = top + cardHeight / 2;
+      drawRoundRect(ctx, left, top, inner, cardHeight, 26, colors.wash);
+      text(String(answer.index).padStart(2, "0"), left + 28, cy + 7, 19, 650, colors.muted);
+
+      const ax = left + 104;
+      ctx.beginPath(); ctx.arc(ax, cy, 40, 0, Math.PI * 2); ctx.fillStyle = answer.hex; ctx.fill();
+      ctx.beginPath(); ctx.arc(ax, cy, 36, 0, Math.PI * 2); ctx.fillStyle = colors.paper; ctx.fill();
       ctx.save();
-      ctx.beginPath(); ctx.arc(left + 77, centerY, 29, 0, Math.PI * 2); ctx.clip();
-      ctx.fillStyle = colors.wash; ctx.fillRect(left + 48, centerY - 29, 58, 58);
+      ctx.beginPath(); ctx.arc(ax, cy, 33, 0, Math.PI * 2); ctx.clip();
+      ctx.fillStyle = colors.wash; ctx.fillRect(ax - 33, cy - 33, 66, 66);
       if (portraits[index]) {
-        const fit = containRect(portraits[index].width, portraits[index].height, left + 48, centerY - 29, 58, 58);
+        const fit = containRect(portraits[index].width, portraits[index].height, ax - 33, cy - 33, 66, 66);
         ctx.drawImage(portraits[index], fit.x, fit.y, fit.width, fit.height);
       }
       ctx.restore();
-      ctx.textAlign = "left"; ctx.fillStyle = colors.ink;
-      setFittedCanvasFont(ctx, answer.name, mainWidth - 242, 750, 26, 18);
-      ctx.fillText(answer.name, left + 130, centerY - 5);
-      text(answer.hex, left + 130, centerY + 26, 20, 500, colors.muted);
-      text(answer.responseTime, left + 270, centerY + 26, 20, 500, colors.muted);
-      text(answer.outcome, right - 28, centerY + 26, 20, 550, answer.correct ? colors.muted : colors.accent, "right");
-      mark(right - 7, centerY + 18, answer.correct);
-      drawRoundRect(ctx, right - 76, centerY - 26, 76, 29, 8, answer.hex);
-      ctx.strokeStyle = colors.rule; strokeRoundRect(ctx, right - 76, centerY - 26, 76, 29, 8);
-      line(y + rowHeight, true);
+
+      const chipWidth = 132, chipX = right - 24 - chipWidth;
+      const nameX = ax + 60;
+      ctx.fillStyle = colors.ink; ctx.textAlign = "left";
+      setFittedCanvasFont(ctx, answer.name, chipX - 28 - nameX, 750, 28, 18);
+      ctx.fillText(answer.name, nameX, cy - 4);
+      text(`${answer.hex}   ${answer.responseTime}`, nameX, cy + 28, 18, 550, colors.muted);
+
+      drawRoundRect(ctx, chipX, cy - 34, chipWidth, 40, 14, answer.hex);
+      ctx.strokeStyle = colors.rule; ctx.lineWidth = 1;
+      strokeRoundRect(ctx, chipX + 0.5, cy - 33.5, chipWidth - 1, 39, 14);
+      text(answer.outcome, right - 24 - 24, cy + 32, 17, 700, answer.correct ? colors.muted : colors.accent, "right");
+      mark(right - 24 - 8, cy + 26, answer.correct);
     });
-    drawResultSeriesCanvas(ctx, { x: left, y: seriesTop, width: mainWidth, height: seriesHeight, activeSeries: record.series, seriesIconImages: seriesImages, colors, metrics: seriesMetrics });
-    line(footerTop);
-    text(labels.footer, left, footerTop + 44, 24, 800);
-    const stripeX = right - 184;
+
+    drawResultSeriesCanvas(ctx, { x: left, y: layout.series, width: inner, height: seriesHeight, activeSeries: record.series, seriesIconImages: seriesImages, colors, metrics: seriesMetrics });
+
+    // Footer: quiz name, this game's colors as a strip, and the repository.
+    rule(layout.footer);
+    text(labels.footer, left, layout.footer + 50, 24, 800);
+    const stripWidth = 220, stripX = right - stripWidth;
     ctx.save();
-    addRoundRectPath(ctx, stripeX, footerTop + 23, 184, 24, 12);
+    addRoundRectPath(ctx, stripX, layout.footer + 30, stripWidth, 24, 12);
     ctx.clip();
     record.palette.forEach((answer, index) => {
       ctx.fillStyle = answer.hex;
-      ctx.fillRect(stripeX + index * 184 / Math.max(1, record.palette.length), footerTop + 23, 184 / Math.max(1, record.palette.length) + 1, 24);
+      ctx.fillRect(stripX + index * stripWidth / Math.max(1, record.palette.length), layout.footer + 30, stripWidth / Math.max(1, record.palette.length) + 1, 24);
     });
     ctx.restore();
-    drawCanvasRepository(ctx, repositoryLabel, left + mainWidth / 2, footerTop + 88, colors);
-    ctx.restore();
-
-    // A narrow perforated stub gives the export its collectible-ticket silhouette.
-    ctx.save();
-    ctx.strokeStyle = colors.rule; ctx.setLineDash([4, 9]);
-    ctx.beginPath(); ctx.moveTo(tearX, 48); ctx.lineTo(tearX, height - 48); ctx.stroke(); ctx.restore();
-    for (let y = 72; y < height - 64; y += 42) {
-      ctx.fillStyle = colors.paper; ctx.strokeStyle = colors.rule;
-      ctx.beginPath(); ctx.arc(tearX, y, 4.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    }
-    const stubX = (tearX + width - 32) / 2;
-    text("PLAY RECORD", stubX, 106, 15, 800, colors.accent, "center");
-    ctx.save(); ctx.translate(stubX + 10, 350); ctx.rotate(Math.PI / 2);
-    text("IMAGE COLOR QUIZ", 0, 0, 29, 800); ctx.restore();
-    record.series.forEach((series, index) => {
-      drawSeriesCanvasBadge(ctx, stubX - 24, 726 - removedMessageSpace + index * 58, 48, 38, series, seriesImages[series]);
-    });
-    drawSeal(ctx, stubX, height - 276, 49, colors);
-    text(labels.recorded, stubX, height - 170, 15, 550, colors.accent, "center");
-    text(record.date, stubX, height - 137, 17, 600, colors.ink, "center");
-    text(record.time, stubX, height - 104, 23, 600, colors.ink, "center");
+    drawCanvasRepository(ctx, repositoryLabel, width / 2, layout.footer + 100, colors);
     return canvas;
   }
 
