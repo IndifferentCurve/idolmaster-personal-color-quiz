@@ -46,135 +46,6 @@ window.IdolmasterResultReport = (() => {
     ctx.restore();
   }
 
-  function drawResultSeriesCanvas(ctx, options) {
-    const { x, y, width, height, activeSeries, seriesIconImages, colors } = options;
-    const metrics = options.metrics || getSeriesCanvasLayout(ctx, activeSeries, width, height);
-
-    ctx.fillStyle = colors.muted;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "alphabetic";
-    ctx.font = `450 ${metrics.titleFontSize}px ${appFontStack}`;
-    ctx.fillText(t("series"), x + width / 2, y + metrics.titleBaseline);
-
-    const rows = metrics.rows;
-    const totalRowsHeight = rows.length * metrics.pillHeight + Math.max(0, rows.length - 1) * metrics.rowGap;
-    const availableHeight = height - metrics.listTop - metrics.bottomPadding;
-    const listTop = y + metrics.listTop + Math.max(0, (availableHeight - totalRowsHeight) / 2);
-
-    rows.forEach((row, rowIndex) => {
-      const rowWidth = row.reduce((sum, series, index) => (
-        sum + getSeriesCanvasPillWidth(ctx, series, metrics) + (index > 0 ? metrics.gap : 0)
-      ), 0);
-      let cursorX = x + (width - rowWidth) / 2;
-      const pillY = listTop + rowIndex * (metrics.pillHeight + metrics.rowGap);
-
-      row.forEach((series) => {
-        const pillWidth = getSeriesCanvasPillWidth(ctx, series, metrics);
-        drawSeriesCanvasPill(ctx, cursorX, pillY, pillWidth, metrics.pillHeight, series, seriesIconImages[series], colors, metrics);
-        cursorX += pillWidth + metrics.gap;
-      });
-    });
-  }
-
-  function getSeriesCanvasLayout(ctx, seriesValues, width, height) {
-    const variants = [
-      { fontSize: 28, titleFontSize: 26, pillHeight: 52, rowGap: 16, gap: 16, padX: 18, badgeWidth: 42, badgeHeight: 32, badgeGap: 12, listTop: 74, bottomPadding: 24 },
-      { fontSize: 26, titleFontSize: 25, pillHeight: 48, rowGap: 12, gap: 12, padX: 16, badgeWidth: 38, badgeHeight: 30, badgeGap: 10, listTop: 70, bottomPadding: 22 },
-      { fontSize: 24, titleFontSize: 24, pillHeight: 44, rowGap: 10, gap: 10, padX: 14, badgeWidth: 34, badgeHeight: 28, badgeGap: 9, listTop: 66, bottomPadding: 22 },
-      { fontSize: 22, titleFontSize: 23, pillHeight: 40, rowGap: 8, gap: 8, padX: 12, badgeWidth: 31, badgeHeight: 25, badgeGap: 8, listTop: 62, bottomPadding: 18 },
-      { fontSize: 20, titleFontSize: 22, pillHeight: 36, rowGap: 6, gap: 8, padX: 10, badgeWidth: 29, badgeHeight: 23, badgeGap: 7, listTop: 56, bottomPadding: 16 },
-      { fontSize: 18, titleFontSize: 21, pillHeight: 34, rowGap: 5, gap: 7, padX: 9, badgeWidth: 27, badgeHeight: 22, badgeGap: 6, listTop: 54, bottomPadding: 14 }
-    ];
-    const maxWidth = width - 48;
-
-    for (const metrics of variants) {
-      const rows = makeSeriesPillRows(ctx, seriesValues, maxWidth, metrics);
-      const rowsHeight = rows.length * metrics.pillHeight + Math.max(0, rows.length - 1) * metrics.rowGap;
-      if (rowsHeight <= height - metrics.listTop - metrics.bottomPadding) {
-        return {
-          ...metrics,
-          titleBaseline: Math.min(44, metrics.listTop - 24),
-          rows
-        };
-      }
-    }
-
-    const fallback = variants[variants.length - 1];
-    return {
-      ...fallback,
-      titleBaseline: Math.min(44, fallback.listTop - 24),
-      rows: makeSeriesPillRows(ctx, seriesValues, maxWidth, fallback)
-    };
-  }
-
-  function makeSeriesPillRows(ctx, seriesValues, maxWidth, metrics) {
-    const preferredRows = makePreferredSeriesRows(seriesValues);
-    if (preferredRows && preferredRows.every((row) => getSeriesCanvasRowWidth(ctx, row, metrics) <= maxWidth)) {
-      return preferredRows;
-    }
-
-    const rows = [];
-    let row = [];
-    let rowWidth = 0;
-
-    seriesValues.forEach((series) => {
-      const pillWidth = getSeriesCanvasPillWidth(ctx, series, metrics);
-      const nextWidth = rowWidth + (row.length ? metrics.gap : 0) + pillWidth;
-      if (row.length && nextWidth > maxWidth) {
-        rows.push(row);
-        row = [series];
-        rowWidth = pillWidth;
-        return;
-      }
-
-      row.push(series);
-      rowWidth = nextWidth;
-    });
-
-    if (row.length) rows.push(row);
-    return rows.length ? rows : [[]];
-  }
-
-  function makePreferredSeriesRows(seriesValues) {
-    if (seriesValues.length === 4) {
-      return [seriesValues.slice(0, 2), seriesValues.slice(2, 4)];
-    }
-
-    if (seriesValues.length === 5) {
-      return [seriesValues.slice(0, 3), seriesValues.slice(3, 5)];
-    }
-
-    if (seriesValues.length === 6) {
-      return [seriesValues.slice(0, 3), seriesValues.slice(3, 6)];
-    }
-
-    return null;
-  }
-
-  function getSeriesCanvasRowWidth(ctx, row, metrics) {
-    return row.reduce((sum, series, index) => (
-      sum + getSeriesCanvasPillWidth(ctx, series, metrics) + (index > 0 ? metrics.gap : 0)
-    ), 0);
-  }
-
-  function drawSeriesCanvasPill(ctx, x, y, width, height, series, iconImage, colors, metrics) {
-    const badgeSize = { width: metrics.badgeWidth, height: metrics.badgeHeight };
-    const badgeX = x + metrics.padX;
-    const badgeY = y + (height - badgeSize.height) / 2;
-    drawSeriesCanvasBadge(ctx, badgeX, badgeY, badgeSize.width, badgeSize.height, series, iconImage);
-
-    ctx.fillStyle = colors.text;
-    ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
-    ctx.font = `550 ${metrics.fontSize}px ${appFontStack}`;
-    ctx.fillText(getSeriesLabel(series), badgeX + badgeSize.width + metrics.badgeGap, y + height / 2 + 1);
-  }
-
-  function getSeriesCanvasPillWidth(ctx, series, metrics) {
-    ctx.font = `550 ${metrics.fontSize}px ${appFontStack}`;
-    return Math.ceil(metrics.padX + metrics.badgeWidth + metrics.badgeGap + ctx.measureText(getSeriesLabel(series)).width + metrics.padX);
-  }
-
   function drawSeriesCanvasBadge(ctx, x, y, width, height, series, iconImage) {
     const colors = getSeriesCanvasColors(series);
     const gradient = ctx.createLinearGradient(x, y, x + width, y + height);
@@ -596,12 +467,12 @@ window.IdolmasterResultReport = (() => {
       paletteRange: t("reportRange", record.palette.length, record.total),
       lineupRemainder: record.lineupRemainder,
       summary: t("correctSummary", record.correct, record.total), unit: `/ ${record.maxScore}`,
-      meta: `${record.difficulty} · ${record.date} ${record.time}`, footer: t("canvasFooter"),
+      meta: `${record.difficulty} · ${record.date} ${record.time}`, footer: t("canvasFooter"), series: t("series"),
       stats: [[t("correctCount"), t("countWithUnit", record.correct)], [t("totalQuestions"), t("countWithUnit", record.total)], [t("resultDifficulty"), record.difficulty], [t("averageTime"), record.averageTime]]
     };
     if (document.fonts?.ready) await document.fonts.ready;
     if (document.fonts?.load) {
-      await document.fonts.load(`700 28px ${appFontStack}`, [record.message, ...Object.values(labels).flat(2), ...record.picks.map(item => item.name)].join(" "));
+      await document.fonts.load(`700 28px ${appFontStack}`, [record.message, ...Object.values(labels).flat(2), ...record.picks.map(item => item.name), ...record.series.map(getSeriesLabel)].join(" "));
     }
     const portraits = await Promise.all(record.picks.map(item => loadImage(item.idol.faceImage)));
     const seriesImages = await loadSeriesIconImages(record.series);
@@ -609,9 +480,11 @@ window.IdolmasterResultReport = (() => {
     const width = 1080, left = 80, right = width - 80, inner = right - left;
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
-    const seriesMetrics = { fontSize: 24, titleFontSize: 24, titleBaseline: 30, pillHeight: 44, rowGap: 12, gap: 14, padX: 10, badgeWidth: 36, badgeHeight: 28, badgeGap: 10, listTop: 54, bottomPadding: 18 };
-    seriesMetrics.rows = makeSeriesPillRows(ctx, record.series, inner - 48, seriesMetrics);
-    const seriesHeight = 54 + seriesMetrics.rows.length * 44 + Math.max(0, seriesMetrics.rows.length - 1) * 12 + 18;
+    const seriesStats = getSeriesAccuracy(record.series);
+    const seriesColumns = seriesStats.length > 1 ? 2 : 1;
+    const seriesRows = Math.ceil(seriesStats.length / seriesColumns);
+    const seriesCardHeight = 96, seriesGap = 12;
+    const seriesHeight = 22 + seriesRows * seriesCardHeight + Math.max(0, seriesRows - 1) * seriesGap;
 
     // Vertical plan, so the canvas height is known before drawing.
     const cardHeight = 112, cardGap = 12;
@@ -627,8 +500,9 @@ window.IdolmasterResultReport = (() => {
     layout.lineupTitle = (y += 84 + 36 + 62);
     layout.cards = (y += 22);
     y += record.picks.length * cardHeight + Math.max(0, record.picks.length - 1) * cardGap;
-    layout.series = (y += 30);
-    layout.footer = (y += seriesHeight + 24);
+    layout.seriesTitle = (y += 62);
+    layout.series = (y += 22);
+    layout.footer = (y += seriesHeight + 34);
     const height = y + 140;
 
     canvas.width = width;
@@ -749,7 +623,37 @@ window.IdolmasterResultReport = (() => {
       mark(right - 24 - 8, cy + 26, answer.correct);
     });
 
-    drawResultSeriesCanvas(ctx, { x: left, y: layout.series, width: inner, height: seriesHeight, activeSeries: record.series, seriesIconImages: seriesImages, colors, metrics: seriesMetrics });
+    // Accuracy per series: badge, name, percent and count, with a bar in the series color.
+    text(labels.series, left, layout.seriesTitle, 24, 800);
+    const seriesWidth = (inner - (seriesColumns - 1) * seriesGap) / seriesColumns;
+    seriesStats.forEach((stat, index) => {
+      const x = left + (index % seriesColumns) * (seriesWidth + seriesGap);
+      const top = layout.series + Math.floor(index / seriesColumns) * (seriesCardHeight + seriesGap);
+      drawRoundRect(ctx, x, top, seriesWidth, seriesCardHeight, 22, colors.wash);
+      drawSeriesCanvasBadge(ctx, x + 20, top + 18, 40, 32, stat.series, seriesImages[stat.series]);
+
+      const percent = stat.total ? `${Math.round(stat.ratio * 100)}%` : "–";
+      const count = `${stat.correct}/${stat.total}`;
+      ctx.font = `600 18px ${appFontStack}`;
+      const countWidth = ctx.measureText(count).width;
+      ctx.font = `800 30px ${appFontStack}`;
+      const percentWidth = ctx.measureText(percent).width;
+      text(count, x + seriesWidth - 20, top + 44, 18, 600, colors.muted, "right");
+      text(percent, x + seriesWidth - 30 - countWidth, top + 45, 30, 800, colors.ink, "right");
+      ctx.fillStyle = colors.ink; ctx.textAlign = "left";
+      setFittedCanvasFont(ctx, getSeriesLabel(stat.series), seriesWidth - 112 - countWidth - percentWidth, 700, 22, 15);
+      ctx.fillText(getSeriesLabel(stat.series), x + 72, top + 42);
+
+      const barX = x + 20, barY = top + 66, barWidth = seriesWidth - 40;
+      drawRoundRect(ctx, barX, barY, barWidth, 10, 5, colors.paper);
+      if (stat.ratio > 0) {
+        const tone = getSeriesCanvasColors(stat.series);
+        const gradient = ctx.createLinearGradient(barX, 0, barX + barWidth, 0);
+        gradient.addColorStop(0, tone.from);
+        gradient.addColorStop(1, tone.to);
+        drawRoundRect(ctx, barX, barY, Math.max(10, barWidth * stat.ratio), 10, 5, gradient);
+      }
+    });
 
     // Footer: quiz name, this game's colors as a strip, and the repository.
     rule(layout.footer);

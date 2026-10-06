@@ -1460,6 +1460,19 @@ function renderResultSeries(values = getSelectedSeriesValues()) {
   renderSeriesItems(resultGroup, values, "result-series-item");
 }
 
+// How many questions from each series were asked, and how many were answered right.
+function getSeriesAccuracy(seriesValues) {
+  return seriesValues.map((series) => {
+    let total = 0, correct = 0;
+    state.questions.forEach((idol, index) => {
+      if (idol.series !== series) return;
+      total += 1;
+      if (state.answerRecords[index]?.isCorrect) correct += 1;
+    });
+    return { series, total, correct, ratio: total ? correct / total : 0 };
+  });
+}
+
 function renderSeriesItems(container, values, itemClassName) {
   const activeSeries = getActiveSeriesValues(values);
   container.innerHTML = "";
@@ -1475,14 +1488,9 @@ function renderSeriesItems(container, values, itemClassName) {
   }
 
   if (itemClassName === "result-series-item") {
-    for (let index = 0; index < activeSeries.length; index += 2) {
-      const row = document.createElement("div");
-      row.className = "result-series-row";
-      activeSeries.slice(index, index + 2).forEach((series) => {
-        row.appendChild(createSeriesSummaryItem(series, itemClassName));
-      });
-      container.appendChild(row);
-    }
+    getSeriesAccuracy(activeSeries).forEach((stat) => {
+      container.appendChild(createSeriesAccuracyItem(stat));
+    });
     return;
   }
 
@@ -1504,6 +1512,28 @@ function createSeriesSummaryItem(series, itemClassName) {
 
     item.append(iconBadge, name);
     return item;
+}
+
+function createSeriesAccuracyItem({ series, total, correct, ratio }) {
+  const item = createSeriesSummaryItem(series, "result-series-item");
+  const score = document.createElement("span");
+  score.className = "result-series-score";
+  const percent = document.createElement("strong");
+  percent.textContent = total ? `${Math.round(ratio * 100)}%` : "–";
+  const count = document.createElement("small");
+  count.textContent = `${correct}/${total}`;
+  score.append(percent, count);
+
+  const meter = document.createElement("span");
+  meter.className = "result-series-meter";
+  const fill = document.createElement("span");
+  fill.className = `series-logo-badge ${getSeriesBadgeClass(series)} result-series-fill`;
+  fill.style.width = `${ratio * 100}%`;
+  meter.appendChild(fill);
+
+  item.append(score, meter);
+  item.title = `${getSeriesLabel(series)} ${correct}/${total}`;
+  return item;
 }
 
 function getSeriesBadgeClass(series) {
